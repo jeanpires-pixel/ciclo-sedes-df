@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ciclo SEDES-DF · TDAS 202 + EDAS 402</title>
+<meta name="description" content="Gerador inteligente de ciclo de estudos para o concurso SEDES-DF (Quadrix) — Técnico Administrativo e Especialista em Comunicação Social">
+
+<style>
+/* ======================================================================
+   DESIGN TOKENS
+   Paleta: sala de comando de um gabinete de concurseiro.
+   Fundo tinta/anil (evita o "quase-preto + neon" e o "creme + terracota"
+   genéricos); dourado-selo para prioridade/CTA; teal p/ TDAS; violeta p/ EDAS.
+   Tipografia: serifada só nos títulos (ecoa "Diário Oficial"), corpo em
+   sans de sistema, números/tempo em monoespaçada (sem fontes externas).
+   ====================================================================== */
+:root{
+  --bg:            #0f1420;
+  --bg-soft:       #141b29;
+  --surface:       #1a2233;
+  --surface-2:     #212b3f;
+  --border:        #2a3650;
+  --text:          #e7ebf3;
+  --text-dim:      #9aa5bd;
+  --text-faint:    #6b7591;
+  --gold:          #d4af37;
+  --gold-soft:     rgba(212,175,55,.14);
+  --teal:          #35b0a7;
+  --teal-soft:     rgba(53,176,167,.14);
+  --violet:        #8c7ae6;
+  --violet-soft:   rgba(140,122,230,.14);
+  --danger:        #e0654a;
+  --danger-soft:   rgba(224,101,74,.14);
+  --success:       #4caf7d;
+  --success-soft:  rgba(76,175,125,.14);
+  --font-display:  Georgia, 'Times New Roman', 'Iowan Old Style', serif;
+  --font-body:     'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono:     'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  --radius:        14px;
+  --radius-sm:     8px;
+  --shadow:        0 10px 30px rgba(0,0,0,.35);
+  --transition:    .22s cubic-bezier(.4,0,.2,1);
+}
+[data-theme="light"]{
+  --bg:            #f5f3ee;
+  --bg-soft:       #efece4;
+  --surface:       #ffffff;
+  --surface-2:     #f2efe8;
+  --border:        #e0dccf;
+  --text:          #201d18;
+  --text-dim:      #5c574c;
+  --text-faint:    #948d7c;
+  --gold:          #a9791f;
+  --gold-soft:     rgba(169,121,31,.10);
+  --teal:          #1f8a81;
+  --teal-soft:     rgba(31,138,129,.10);
+  --violet:        #6c5ce7;
+  --violet-soft:   rgba(108,92,231,.10);
+  --danger:        #c94a30;
+  --danger-soft:   rgba(201,74,48,.10);
+  --success:       #2e8a5e;
+  --success-soft:  rgba(46,138,94,.10);
+  --shadow:        0 10px 24px rgba(80,70,40,.10);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  font-size:15px;
+  line-height:1.5;
+  transition:background var(--transition), color var(--transition);
+  overflow-x:hidden;
+}
+::selection{background:var(--gold);color:#1a1408;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;}
+a{color:inherit;}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;color:var(--text);}
+
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:700;letter-spacing:.2px;}
+.mono{font-family:var(--font-mono);}
+
+/* ---------- App shell ---------- */
+.app-shell{display:flex;min-height:100vh;}
+
+/* ---------- Sidebar ---------- */
+.sidebar{
+  width:250px;flex-shrink:0;background:var(--bg-soft);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  transition:width var(--transition), transform var(--transition);
+  position:relative;z-index:20;
+}
+.sidebar.collapsed{width:74px;}
+.sidebar-brand{
+  display:flex;align-items:center;gap:10px;padding:22px 18px;border-bottom:1px solid var(--border);
+}
+.brand-seal{
+  width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  background:conic-gradient(from 220deg, var(--gold), var(--teal), var(--violet), var(--gold));
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:700;font-size:14px;color:#12141c;
+  box-shadow:0 0 0 3px var(--bg-soft), 0 0 0 4px var(--border);
+}
+.brand-seal span{background:var(--bg-soft);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gold);}
+.brand-text{overflow:hidden;white-space:nowrap;}
+.brand-text b{display:block;font-family:var(--font-display);font-size:15px;}
+.brand-text small{color:var(--text-faint);font-size:11px;letter-spacing:.4px;text-transform:uppercase;}
+.sidebar.collapsed .brand-text{display:none;}
+
+.nav{flex:1;padding:14px 10px;overflow-y:auto;}
+.nav-item{
+  display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:var(--radius-sm);
+  color:var(--text-dim);font-size:13.5px;cursor:pointer;transition:background var(--transition), color var(--transition);
+  white-space:nowrap;overflow:hidden;margin-bottom:2px;
+}
+.nav-item:hover{background:var(--surface);color:var(--text);}
+.nav-item.active{background:var(--gold-soft);color:var(--gold);font-weight:600;}
+.nav-icon{width:20px;text-align:center;flex-shrink:0;font-size:15px;}
+.sidebar.collapsed .nav-label{display:none;}
+
+.sidebar-footer{padding:14px;border-top:1px solid var(--border);}
+.sync-pill{
+  display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-faint);
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:7px 10px;
+}
+.sidebar.collapsed .sync-pill span.txt{display:none;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--text-faint);flex-shrink:0;}
+.dot.ok{background:var(--success);box-shadow:0 0 6px var(--success);}
+.dot.off{background:var(--danger);}
+
+/* ---------- Topbar ---------- */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{
+  display:flex;align-items:center;gap:14px;padding:14px 24px;
+  border-bottom:1px solid var(--border);background:var(--bg);
+  position:sticky;top:0;z-index:15;
+}
+.icon-btn{
+  width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--surface);
+  color:var(--text-dim);display:flex;align-items:center;justify-content:center;font-size:15px;
+  transition:all var(--transition);
+}
+.icon-btn:hover{color:var(--text);border-color:var(--gold);}
+.topbar-title{flex:1;min-width:0;}
+.topbar-title h1{font-size:17px;}
+.topbar-title small{color:var(--text-faint);font-size:11.5px;}
+.countdown-chip{
+  display:flex;align-items:center;gap:10px;background:var(--gold-soft);border:1px solid var(--gold);
+  border-radius:20px;padding:7px 14px;color:var(--gold);font-size:12.5px;font-weight:600;white-space:nowrap;
+}
+.countdown-chip b{font-family:var(--font-mono);font-size:14px;}
+
+/* ---------- Content ---------- */
+.content{flex:1;padding:24px;overflow-y:auto;}
+.view{display:none;animation:fadeUp .35s ease both;}
+.view.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.grid{display:grid;gap:18px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:2fr 1fr;}
+@media (max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr);}.grid-3{grid-template-columns:1fr;}.grid-2{grid-template-columns:1fr;}}
+@media (max-width:640px){.grid-4{grid-template-columns:1fr;}}
+
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px;box-shadow:var(--shadow);transition:border-color var(--transition), transform var(--transition);
+}
+.card:hover{border-color:var(--border);}
+.card h3{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-faint);margin-bottom:10px;font-family:var(--font-body);font-weight:700;}
+.card .big{font-family:var(--font-mono);font-size:30px;font-weight:700;}
+.card .cap{color:var(--text-dim);font-size:12px;margin-top:4px;}
+
+/* Signature element: anel do ciclo (radial progress) */
+.anel-wrap{display:flex;align-items:center;gap:20px;}
+.anel{position:relative;width:132px;height:132px;flex-shrink:0;}
+.anel svg{transform:rotate(-90deg);}
+.anel .track{fill:none;stroke:var(--border);stroke-width:10;}
+.anel .fill{fill:none;stroke:var(--gold);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .6s ease;}
+.anel .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.anel .center b{font-family:var(--font-mono);font-size:22px;}
+.anel .center small{color:var(--text-faint);font-size:10px;text-transform:uppercase;}
+
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.3px;}
+.badge.tdas{background:var(--teal-soft);color:var(--teal);}
+.badge.edas{background:var(--violet-soft);color:var(--violet);}
+.badge.comum{background:var(--gold-soft);color:var(--gold);}
+.badge.simulado{background:var(--danger-soft);color:var(--danger);}
+.badge.ok{background:var(--success-soft);color:var(--success);}
+
+.btn{
+  display:inline-flex;align-items:center;gap:8px;border-radius:10px;border:1px solid var(--border);
+  background:var(--surface-2);color:var(--text);padding:9px 16px;font-size:13px;font-weight:600;
+  transition:all var(--transition);
+}
+.btn:hover{border-color:var(--gold);color:var(--gold);}
+.btn.primary{background:var(--gold);color:#1a1408;border-color:var(--gold);}
+.btn.primary:hover{filter:brightness(1.08);color:#1a1408;}
+.btn.ghost{background:transparent;}
+.btn.danger:hover{border-color:var(--danger);color:var(--danger);}
+.btn.sm{padding:6px 11px;font-size:12px;}
+.btn:disabled{opacity:.45;pointer-events:none;}
+
+.section-head{display:flex;align-items:center;justify-content:space-between;margin:26px 0 14px;flex-wrap:wrap;gap:10px;}
+.section-head h2{font-size:19px;}
+.section-head .sub{color:var(--text-faint);font-size:12.5px;}
+
+/* Day block list */
+.day-group{margin-bottom:16px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);}
+.day-head{
+  display:flex;align-items:center;justify-content:space-between;padding:13px 18px;background:var(--surface-2);
+  cursor:pointer;user-select:none;
+}
+.day-head .d-left{display:flex;align-items:center;gap:10px;}
+.day-head b{font-family:var(--font-display);font-size:15px;}
+.day-head .tag{font-size:11px;color:var(--text-faint);}
+.day-blocks{padding:6px 10px;display:none;}
+.day-blocks.open{display:block;}
+.block-row{
+  display:grid;grid-template-columns:64px 1fr auto auto;align-items:center;gap:12px;
+  padding:10px 10px;border-radius:10px;transition:background var(--transition);
+}
+.block-row:hover{background:var(--surface-2);}
+.block-row.done{opacity:.55;}
+.block-time{font-family:var(--font-mono);font-size:12px;color:var(--text-faint);}
+.block-disc{display:flex;align-items:center;gap:9px;min-width:0;}
+.color-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.block-disc .name{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.block-disc .meta{font-size:11px;color:var(--text-faint);}
+.stars{display:flex;gap:2px;}
+.stars span{cursor:pointer;color:var(--border);font-size:14px;}
+.stars span.on{color:var(--gold);}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;}
+th,td{text-align:left;padding:10px 12px;font-size:13px;border-bottom:1px solid var(--border);}
+th{color:var(--text-faint);font-size:11px;text-transform:uppercase;letter-spacing:.4px;}
+.bar-track{background:var(--surface-2);border-radius:6px;height:8px;width:100%;overflow:hidden;}
+.bar-fill{height:100%;border-radius:6px;}
+
+/* Forms / settings */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+@media (max-width:640px){.form-row{grid-template-columns:1fr;}}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field label{font-size:12px;color:var(--text-dim);font-weight:600;}
+.field input,.field select,.field textarea{
+  background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:13px;
+}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--gold);}
+.field small{color:var(--text-faint);font-size:11px;}
+.weekday-picker{display:flex;gap:8px;flex-wrap:wrap;}
+.weekday-picker label{
+  display:flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;
+}
+.priority-table td{vertical-align:middle;}
+.pill-select{display:flex;gap:6px;}
+.pill-select button{
+  border:1px solid var(--border);background:var(--surface-2);border-radius:20px;padding:4px 11px;font-size:11px;color:var(--text-dim);
+}
+.pill-select button.active{background:var(--gold);color:#1a1408;border-color:var(--gold);}
+
+/* Timer */
+.timer-display{font-family:var(--font-mono);font-size:64px;text-align:center;letter-spacing:2px;margin:10px 0;}
+.timer-ring{width:220px;height:220px;margin:0 auto;position:relative;}
+.timer-controls{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+.pomodoro-status{text-align:center;color:var(--text-faint);font-size:12px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
+
+/* Quote / alerts */
+.quote-card{
+  background:linear-gradient(135deg, var(--gold-soft), transparent);border:1px solid var(--gold);
+  border-radius:var(--radius);padding:16px 20px;font-family:var(--font-display);font-style:italic;font-size:14.5px;
+}
+.alert{
+  display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:10px;font-size:12.5px;margin-bottom:8px;
+  border:1px solid var(--border);
+}
+.alert.warn{background:var(--danger-soft);border-color:var(--danger);color:var(--danger);}
+.alert.info{background:var(--teal-soft);border-color:var(--teal);color:var(--teal);}
+.alert.good{background:var(--success-soft);border-color:var(--success);color:var(--success);}
+
+/* Focus mode */
+body.focus-mode .sidebar,body.focus-mode .topbar,body.focus-mode .nav-item{display:none !important;}
+body.focus-mode .content{max-width:720px;margin:0 auto;padding-top:60px;}
+.focus-exit{position:fixed;top:18px;right:18px;z-index:999;}
+
+/* Filters row */
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.filters select{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12.5px;}
+
+/* Textarea code block */
+.code-box{
+  width:100%;min-height:220px;background:#0b0e15;color:#9fe3b5;border:1px solid var(--border);
+  border-radius:10px;padding:14px;font-family:var(--font-mono);font-size:11.5px;line-height:1.6;resize:vertical;
+}
+[data-theme="light"] .code-box{background:#1c2230;}
+
+.export-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+@media (max-width:640px){.export-grid{grid-template-columns:1fr;}}
+.export-tile{
+  border:1px dashed var(--border);border-radius:var(--radius);padding:20px;text-align:center;
+  transition:all var(--transition);cursor:pointer;
+}
+.export-tile:hover{border-color:var(--gold);border-style:solid;}
+.export-tile .ic{font-size:26px;margin-bottom:8px;display:block;}
+
+footer.app-foot{padding:18px 24px;color:var(--text-faint);font-size:11.5px;text-align:center;border-top:1px solid var(--border);}
+
+/* print (used for PDF export via browser print) */
+@media print{
+  .sidebar,.topbar,footer.app-foot,.no-print{display:none !important;}
+  .content{padding:0;}
+  body{background:#fff;color:#000;}
+  .card{box-shadow:none;border:1px solid #ccc;}
+}
+
+@media (max-width:900px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);}
+  .sidebar.mobile-open{transform:translateX(0);}
+  .grid-4,.grid-3{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="app-shell">
+
+  <!-- ============================== SIDEBAR ============================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-seal"><span>SD</span></div>
+      <div class="brand-text">
+        <b>Ciclo SEDES-DF</b>
+        <small>TDAS 202 · EDAS 402</small>
+      </div>
+    </div>
+    <nav class="nav" id="navList">
+      <div class="nav-item active" data-view="dashboard"><span class="nav-icon">◈</span><span class="nav-label">Dashboard</span></div>
+      <div class="nav-item" data-view="ciclo"><span class="nav-icon">▤</span><span class="nav-label">Ciclo de Estudos</span></div>
+      <div class="nav-item" data-view="timer"><span class="nav-icon">◷</span><span class="nav-label">Timer &amp; Pomodoro</span></div>
+      <div class="nav-item" data-view="estatisticas"><span class="nav-icon">▲</span><span class="nav-label">Estatísticas</span></div>
+      <div class="nav-item" data-view="config"><span class="nav-icon">⚙</span><span class="nav-label">Configurações</span></div>
+      <div class="nav-item" data-view="exportar"><span class="nav-icon">⇩</span><span class="nav-label">Exportar &amp; Backup</span></div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sync-pill"><span class="dot off" id="syncDot"></span><span class="txt" id="syncTxt">Sheets não conectado</span></div>
+    </div>
+  </aside>
+
+  <!-- ============================== MAIN ============================== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn no-print" id="btnSidebar" title="Recolher menu">☰</button>
+      <div class="topbar-title">
+        <h1 id="pageTitle">Dashboard</h1>
+        <small id="pageSub">Visão geral do seu ciclo de estudos</small>
+      </div>
+      <div class="countdown-chip" id="countdownChip">Carregando...</div>
+      <button class="icon-btn no-print" id="btnFocus" title="Modo foco">◎</button>
+      <button class="icon-btn no-print" id="btnTheme" title="Alternar tema">☀</button>
+    </header>
+
+    <main class="content" id="content">
+
+      <!-- ===================== VIEW: DASHBOARD ===================== -->
+      <section class="view active" id="view-dashboard">
+
+        <div class="grid grid-4" style="margin-bottom:4px;">
+          <div class="card">
+            <h3>Anel do ciclo — hoje</h3>
+            <div class="anel-wrap">
+              <div class="anel">
+                <svg width="132" height="132" viewBox="0 0 132 132">
+                  <circle class="track" cx="66" cy="66" r="56"></circle>
+                  <circle class="fill" id="ringToday" cx="66" cy="66" r="56" stroke-dasharray="352" stroke-dashoffset="352"></circle>
+                </svg>
+                <div class="center"><b id="ringTodayLabel">0/0</b><small>blocos hoje</small></div>
+              </div>
+              <div>
+                <div class="cap">Blocos concluídos hoje</div>
+                <div class="big" id="todayDoneCount" style="font-size:22px;">0</div>
+                <div class="cap" id="todayDateLabel">—</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Horas líquidas estudadas</h3>
+            <div class="big" id="statHoras">0h00</div>
+            <div class="cap">acumulado desde 29/07/2026</div>
+          </div>
+          <div class="card">
+            <h3>Progresso do edital</h3>
+            <div class="big" id="statEdital">0%</div>
+            <div class="bar-track" style="margin-top:8px;"><div class="bar-fill" id="barEdital" style="width:0%;background:var(--gold);"></div></div>
+            <div class="cap" id="capEdital">0 de 0 blocos concluídos</div>
+          </div>
+          <div class="card">
+            <h3>Predição de aprovação</h3>
+            <div class="big" id="statPredicao" style="color:var(--success);">—</div>
+            <div class="cap" id="capPredicao">calculando com base no seu desempenho...</div>
+          </div>
+        </div>
+
+        <div class="grid grid-2" style="margin-top:18px;">
+          <div class="card">
+            <div class="section-head" style="margin:0 0 8px;">
+              <h2 style="font-size:15px;">Blocos de hoje</h2>
+              <span class="sub" id="todayRange">—</span>
+            </div>
+            <div id="todayBlocksList"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:18px;">
+            <div class="card">
+              <h3>Alertas inteligentes</h3>
+              <div id="alertsBox"></div>
+            </div>
+            <div class="quote-card" id="quoteBox">Carregando frase motivacional...</div>
+          </div>
+        </div>
+
+        <div class="grid grid-2" style="margin-top:18px;">
+          <div class="card">
+            <h3>Ranking de disciplinas (prioridade de reforço)</h3>
+            <table>
+              <thead><tr><th>Disciplina</th><th>Cargo</th><th>Desempenho médio</th><th>Blocos feitos</th></tr></thead>
+              <tbody id="rankingTable"></tbody>
+            </table>
+          </div>
+          <div class="card">
+            <h3>Estimativa de conclusão do edital</h3>
+            <p style="font-size:13px;color:var(--text-dim);margin-bottom:10px;">Com base no seu ritmo atual de blocos concluídos por dia.</p>
+            <div id="estimativaBox"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================== VIEW: CICLO ===================== -->
+      <section class="view" id="view-ciclo">
+        <div class="filters no-print">
+          <select id="filterCargo">
+            <option value="todos">Todos os cargos</option>
+            <option value="TDAS">Somente TDAS</option>
+            <option value="EDAS">Somente EDAS</option>
+            <option value="Comum">Somente Comum</option>
+          </select>
+          <select id="filterStatus">
+            <option value="todos">Todos os status</option>
+            <option value="pendente">Pendentes</option>
+            <option value="feito">Concluídos</option>
+          </select>
+          <button class="btn sm" id="btnHojeScroll">Ir para hoje</button>
+          <button class="btn sm" id="btnRegenerar">🔄 Regerar ciclo</button>
+        </div>
+        <div id="cicloContainer"></div>
+      </section>
+
+      <!-- ===================== VIEW: TIMER ===================== -->
+      <section class="view" id="view-timer">
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="pomodoro-status" id="pomStatus">Bloco de estudo — 50 min</div>
+            <div class="timer-display mono" id="pomDisplay">50:00</div>
+            <div class="cap" style="text-align:center;" id="pomDiscLabel">Selecione um bloco no Ciclo para sincronizar</div>
+            <div class="timer-controls">
+              <button class="btn primary" id="pomStart">▶ Iniciar</button>
+              <button class="btn" id="pomPause">⏸ Pausar</button>
+              <button class="btn ghost" id="pomReset">↺ Reiniciar</button>
+              <button class="btn ghost" id="pomSkip">⏭ Pular etapa</button>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:18px;">
+            <div class="card">
+              <h3>Cronômetro livre</h3>
+              <div class="timer-display mono" id="stopDisplay" style="font-size:38px;">00:00:00</div>
+              <div class="timer-controls">
+                <button class="btn primary sm" id="stopStart">▶</button>
+                <button class="btn sm" id="stopPause">⏸</button>
+                <button class="btn ghost sm" id="stopReset">↺</button>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Cronômetro regressivo</h3>
+              <div class="field" style="margin-bottom:10px;">
+                <label>Minutos</label>
+                <input type="number" id="countdownMinutes" value="25" min="1" max="180">
+              </div>
+              <div class="timer-display mono" id="cdDisplay" style="font-size:38px;">25:00</div>
+              <div class="timer-controls">
+                <button class="btn primary sm" id="cdStart">▶</button>
+                <button class="btn sm" id="cdPause">⏸</button>
+                <button class="btn ghost sm" id="cdReset">↺</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== VIEW: ESTATISTICAS ===================== -->
+      <section class="view" id="view-estatisticas">
+        <div class="grid grid-3">
+          <div class="card"><h3>Total de blocos</h3><div class="big" id="es-total">0</div></div>
+          <div class="card"><h3>Blocos concluídos</h3><div class="big" id="es-feitos">0</div></div>
+          <div class="card"><h3>Média geral de desempenho</h3><div class="big" id="es-media">0.0 ★</div></div>
+        </div>
+        <div class="card" style="margin-top:18px;">
+          <h3>Horas estudadas por disciplina</h3>
+          <div id="es-barras"></div>
+        </div>
+        <div class="card" style="margin-top:18px;">
+          <h3>Progresso por cargo</h3>
+          <div class="grid grid-3" id="es-cargos"></div>
+        </div>
+      </section>
+
+      <!-- ===================== VIEW: CONFIG ===================== -->
+      <section class="view" id="view-config">
+
+        <div class="section-head"><h2>Parâmetros do ciclo</h2><span class="sub">Alterar e clicar em "Salvar e regerar"</span></div>
+        <div class="card">
+          <div class="form-row">
+            <div class="field"><label>Horas líquidas por dia</label><input type="number" id="cfgHoras" step="0.5" min="1" max="14"></div>
+            <div class="field"><label>Duração do bloco de estudo (min)</label><input type="number" id="cfgBloco" min="10" max="120"></div>
+            <div class="field"><label>Descanso curto entre blocos (min)</label><input type="number" id="cfgDescansoCurto" min="0" max="60"></div>
+            <div class="field"><label>Pausa longa após quantos blocos</label><input type="number" id="cfgBlocosPausa" min="1" max="10"></div>
+            <div class="field"><label>Duração da pausa longa (min)</label><input type="number" id="cfgPausaLonga" min="0" max="120"></div>
+            <div class="field"><label>Data da prova (véspera = último dia de estudo)</label><input type="date" id="cfgDataProva"></div>
+          </div>
+          <div class="field" style="margin-bottom:14px;">
+            <label>Dias de descanso / revisão leve na semana</label>
+            <div class="weekday-picker" id="weekdayPicker">
+              <label><input type="checkbox" value="0" class="wd-chk"> Dom</label>
+              <label><input type="checkbox" value="1" class="wd-chk"> Seg</label>
+              <label><input type="checkbox" value="2" class="wd-chk"> Ter</label>
+              <label><input type="checkbox" value="3" class="wd-chk"> Qua</label>
+              <label><input type="checkbox" value="4" class="wd-chk"> Qui</label>
+              <label><input type="checkbox" value="5" class="wd-chk"> Sex</label>
+              <label><input type="checkbox" value="6" class="wd-chk"> Sáb</label>
+            </div>
+            <small>Dia marcado vira revisão leve de flashcards (sem ciclo completo).</small>
+          </div>
+          <div class="field" style="margin-bottom:14px;">
+            <label>Dia de simulado geral (Flashcards Concursos)</label>
+            <select id="cfgDiaSimulado">
+              <option value="-1">Nenhum</option>
+              <option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option>
+              <option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option>
+            </select>
+          </div>
+          <button class="btn primary" id="btnSalvarConfig">💾 Salvar e regerar ciclo</button>
+        </div>
+
+        <div class="section-head"><h2>Prioridades por disciplina</h2><span class="sub">1 = baixa · 3 = média · 5 = alta (mais blocos no ciclo)</span></div>
+        <div class="card">
+          <table class="priority-table">
+            <thead><tr><th>Disciplina</th><th>Cargo</th><th>Prioridade</th></tr></thead>
+            <tbody id="priorityTable"></tbody>
+          </table>
+        </div>
+
+        <div class="section-head"><h2>Aparência</h2></div>
+        <div class="card" style="display:flex;gap:14px;align-items:center;">
+          <button class="btn" id="cfgThemeDark">🌙 Dark mode</button>
+          <button class="btn" id="cfgThemeLight">☀ Light mode</button>
+        </div>
+
+        <div class="section-head"><h2>Integração — Google Sheets (Apps Script)</h2><span class="sub">Sem LocalStorage: os dados são salvos direto na sua planilha</span></div>
+        <div class="card">
+          <p style="font-size:12.5px;color:var(--text-dim);margin-bottom:14px;">
+            1. Abra sua Google Sheets → Extensões → Apps Script.<br>
+            2. Cole o código do template abaixo, implante como "Aplicativo da Web" (acesso: qualquer pessoa).<br>
+            3. Copie a URL gerada e cole no campo abaixo. Clique em "Conectar".<br>
+            4. Como o app não usa LocalStorage, você pode salvar esta página nos favoritos com
+            <code>?scriptUrl=SUA_URL&sheetId=SEU_ID</code> ao final do link para reconectar automaticamente.
+          </p>
+          <div class="form-row">
+            <div class="field"><label>URL do Apps Script (Web App)</label><input type="text" id="cfgScriptUrl" placeholder="https://script.google.com/macros/s/AKfycb.../exec"></div>
+            <div class="field"><label>ID da planilha (Sheet ID)</label><input type="text" id="cfgSheetId" placeholder="1AbCdEfGhIjKlmnOPQRstuv..."></div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn primary" id="btnConectarSheets">🔗 Conectar</button>
+            <button class="btn" id="btnSalvarAgora">☁ Salvar agora na planilha</button>
+            <button class="btn" id="btnPuxarSheets">⬇ Carregar dados da planilha</button>
+            <button class="btn" id="btnCopiarLink">📋 Copiar link com configuração salva</button>
+          </div>
+          <div class="field" style="margin-top:12px;" id="linkPreviewWrap" hidden>
+            <label>Link gerado (salve nos favoritos)</label>
+            <input type="text" id="linkPreview" readonly onclick="this.select();">
+          </div>
+          <div class="field" style="margin-top:16px;">
+            <label>Template do código Apps Script (copie para o seu projeto)</label>
+            <textarea class="code-box" id="appsScriptTemplate" readonly></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== VIEW: EXPORTAR ===================== -->
+      <section class="view" id="view-exportar">
+        <div class="section-head"><h2>Exportar &amp; Backup</h2><span class="sub">Gere uma cópia local independente da planilha</span></div>
+        <div class="export-grid">
+          <div class="export-tile" id="expJson"><span class="ic">{ }</span><b>Exportar JSON</b><div class="cap">backup completo do estado</div></div>
+          <div class="export-tile" id="expCsv"><span class="ic">▦</span><b>Exportar Excel/CSV</b><div class="cap">planilha do ciclo de estudos</div></div>
+          <div class="export-tile" id="expPdf"><span class="ic">▤</span><b>Exportar PDF</b><div class="cap">imprimir / salvar como PDF</div></div>
+        </div>
+        <div class="section-head"><h2>Importar backup (JSON)</h2></div>
+        <div class="card">
+          <input type="file" id="importFile" accept="application/json">
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="app-foot">Ciclo SEDES-DF · Gerado localmente no navegador · Prova em 06/09/2026 (EDAS manhã / TDAS tarde) · Instituto Quadrix</footer>
+  </div>
+</div>
+
+<button class="btn ghost focus-exit no-print" id="btnFocusExit" style="display:none;">✕ Sair do modo foco</button>
+
+<script>
+/* =====================================================================================
+   CICLO SEDES-DF — GERADOR INTELIGENTE DE CICLO DE ESTUDOS
+   HTML + CSS + JS puro. Nenhuma dependência externa.
+   Estrutura em módulos internos (IIFE) para organização e reuso.
+   ===================================================================================== */
+
+'use strict';
+
+/* =====================================================================================
+   MÓDULO 0 — CONFIGURAÇÃO GLOBAL
+   Tudo que precisa ser ajustável fica centralizado aqui.
+   ID da planilha e URL do Apps Script ficam separados, exatamente como pedido.
+   ===================================================================================== */
+const APP_CONFIG = {
+  // ---- Identidade do concurso (extraído do edital SEDES-DF / Quadrix) ----
+  CONCURSO: 'SEDES-DF — Quadrix — Edital nº 1/2026 (retificado)',
+  DATA_INICIO_CICLO: '2026-07-29',   // hoje, início do ciclo
+  DATA_PROVA: '2026-09-06',          // data das provas objetiva e discursiva (item 17 do cronograma)
+  // véspera é calculada automaticamente a partir da DATA_PROVA
+
+  // ---- Rotina diária ----
+  HORAS_LIQUIDAS_DIA: 6,
+  BLOCO_MINUTOS: 50,
+  DESCANSO_CURTO_MINUTOS: 10,
+  BLOCOS_ATE_PAUSA_LONGA: 3,
+  PAUSA_LONGA_MINUTOS: 30,
+
+  // ---- Dias especiais da semana (0=domingo...6=sábado) ----
+  DIAS_DESCANSO: [0],     // domingo = revisão leve
+  DIA_SIMULADO: 6,        // sábado = simulado geral via Flashcards Concursos
+  DIAS_REVISAO_FINAL: 3,  // últimos N dias antes da prova viram revisão geral + simulados
+
+  // ---- Google Sheets / Apps Script (preencher na tela Configurações) ----
+  SHEETS: {
+    SPREADSHEET_ID: '',
+    APPS_SCRIPT_URL: '',
+    ENABLED: false
+  },
+
+  // ---- Metodologia declarada pelo candidato ----
+  METODO_PRINCIPAL: 'Resolução de questões — flashcardsconcursos.com.br/portal/home'
+};
+
+/* =====================================================================================
+   MÓDULO 1 — BASE DE DISCIPLINAS (derivada do item 20 do edital)
+   prioridade: 1 (baixa) a 5 (alta) — define o peso no rodízio ponderado.
+   Definida a partir do perfil informado: Português é o ponto mais fraco (5),
+   Comunicação Social já é dominada (1, apenas manutenção via questões).
+   ===================================================================================== */
+let DISCIPLINAS = [
+  { id:'port',          nome:'Português — Interpretação, Reescrita e Gramática', cargo:'Comum', metodo:'Questões + Reescrita', prioridade:5, cor:'#d4af37' },
+  { id:'leg_df',        nome:'Legislação Distrital, DF, Lei Maria da Penha e 1º Socorros', cargo:'Comum', metodo:'Questões', prioridade:3, cor:'#d4af37' },
+  { id:'prog_df',       nome:'Programas e Benefícios Socioassistenciais do DF', cargo:'Comum', metodo:'Questões', prioridade:4, cor:'#d4af37' },
+  { id:'suas_tdas',     nome:'SUAS — Fundamentos, Organização e Gestão', cargo:'TDAS', metodo:'Teoria + Questões', prioridade:4, cor:'#35b0a7' },
+  { id:'dconst',        nome:'Direito Constitucional', cargo:'TDAS', metodo:'Questões', prioridade:4, cor:'#35b0a7' },
+  { id:'dadm',          nome:'Direito Administrativo e Legislação', cargo:'TDAS', metodo:'Questões', prioridade:4, cor:'#35b0a7' },
+  { id:'arq',           nome:'Atendimento, Rotinas Administrativas e Arquivologia', cargo:'TDAS', metodo:'Questões', prioridade:4, cor:'#35b0a7' },
+  { id:'rec_mat',       nome:'Recursos Materiais, Patrimônio e Compras', cargo:'TDAS', metodo:'Questões', prioridade:4, cor:'#35b0a7' },
+  { id:'redacao_tdas',  nome:'Redação Dissertativo-Argumentativa (TDAS)', cargo:'TDAS', metodo:'Discursiva', prioridade:5, cor:'#35b0a7' },
+  { id:'as_edas',       nome:'Assistência Social — LOAS, PNAS, NOB, CadÚnico, MROSC', cargo:'EDAS', metodo:'Teoria + Questões', prioridade:4, cor:'#8c7ae6' },
+  { id:'direitos_edas', nome:'Direitos, Violações e Vulnerabilidades Sociais', cargo:'EDAS', metodo:'Questões', prioridade:4, cor:'#8c7ae6' },
+  { id:'com_fund',      nome:'Fundamentos e Teorias da Comunicação', cargo:'EDAS', metodo:'Questões (revisão)', prioridade:1, cor:'#8c7ae6' },
+  { id:'com_org',       nome:'Comunicação Organizacional e Relações Públicas', cargo:'EDAS', metodo:'Questões (revisão)', prioridade:1, cor:'#8c7ae6' },
+  { id:'jorn',          nome:'Jornalismo, Assessoria de Imprensa e Gestão de Crise', cargo:'EDAS', metodo:'Questões (revisão)', prioridade:1, cor:'#8c7ae6' },
+  { id:'com_dig',       nome:'Comunicação Digital e Novas Tecnologias', cargo:'EDAS', metodo:'Questões (revisão)', prioridade:1, cor:'#8c7ae6' },
+  { id:'etica_com',     nome:'Ética Profissional em Comunicação', cargo:'EDAS', metodo:'Questões (revisão)', prioridade:1, cor:'#8c7ae6' },
+  { id:'estudo_caso',   nome:'Estudo de Caso — Discursiva Comunicação (EDAS)', cargo:'EDAS', metodo:'Discursiva', prioridade:3, cor:'#8c7ae6' }
+];
+const DISC_SIMULADO = { id:'simulado', nome:'Simulado Geral — Flashcards Concursos', cargo:'Comum', metodo:'Simulado', prioridade:0, cor:'#e0654a' };
+
+const FRASES_MOTIVACIONAIS = [
+  'Quem sonha com a nomeação estuda a caderneta enquanto o outro dorme a sesta.',
+  'Português não perdoa — mas rotina sim. Um bloco de cada vez.',
+  'A vaga já existe. Falta o nome no Diário Oficial ser o seu.',
+  'Questão errada hoje é ponto garantido amanhã. Erre rápido, aprenda rápido.',
+  'Comunicação Social você já domina — use esse tempo extra para blindar Português.',
+  'Cadastro de reserva também nomeia. Continue subindo na fila.',
+  'O edital foi publicado uma vez. Sua aprovação será lida uma vez também.',
+  'Disciplina é a ponte entre o candidato de hoje e o servidor de amanhã.',
+  'Cada flashcard resolvido é um tijolo na sua posse.',
+  'Foco na banca Quadrix: interpretação de texto decide a classificação.'
+];
+
+/* =====================================================================================
+   MÓDULO 2 — UTILITÁRIOS
+   ===================================================================================== */
+const Utils = (() => {
+  function parseISO(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+  function toISO(date){ return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0'); }
+  function addDays(date, n){ const d = new Date(date); d.setDate(d.getDate()+n); return d; }
+  function fmtDatePt(date){
+    const dias = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+    const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    return String(date.getDate()).padStart(2,'0')+' '+meses[date.getMonth()]+' · '+dias[date.getDay()];
+  }
+  function fmtDateShort(date){ return String(date.getDate()).padStart(2,'0')+'/'+String(date.getMonth()+1).padStart(2,'0'); }
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function minutesToClock(totalMin){
+    const h = Math.floor(totalMin/60), m = Math.round(totalMin%60);
+    return h+'h'+pad(m);
+  }
+  function secToMMSS(totalSec){
+    const m = Math.floor(totalSec/60), s = Math.floor(totalSec%60);
+    return pad(m)+':'+pad(s);
+  }
+  function secToHMS(totalSec){
+    const h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60), s = Math.floor(totalSec%60);
+    return pad(h)+':'+pad(m)+':'+pad(s);
+  }
+  function daysBetween(a,b){ return Math.round((b-a)/86400000); }
+  function uid(){ return 'b_'+Math.random().toString(36).slice(2,10); }
+  function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+  function downloadBlob(content, filename, mime){
+    const blob = new Blob([content], {type:mime});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+  return { parseISO, toISO, addDays, fmtDatePt, fmtDateShort, pad, minutesToClock, secToMMSS, secToHMS, daysBetween, uid, clamp, downloadBlob };
+})();
+
+/* =====================================================================================
+   MÓDULO 3 — MOTOR DO CICLO (WEIGHTED ROUND ROBIN)
+   Usa o algoritmo clássico de "smooth weighted round-robin" (o mesmo usado em
+   balanceadores de carga) para intercalar disciplinas proporcionalmente à
+   prioridade configurada, evitando repetições longas da mesma matéria.
+   ===================================================================================== */
+const CycleEngine = (() => {
+
+  // Estado persistente do rodízio (não reseta a cada dia — flui continuamente)
+  function criarRotor(disciplinas){
+    return disciplinas.map(d => ({ id:d.id, peso:d.prioridade, atual:0 }));
+  }
+  function proximaDisciplina(rotor){
+    const pesoTotal = rotor.reduce((s,d)=>s+d.peso,0);
+    if (pesoTotal <= 0) return rotor[0].id;
+    rotor.forEach(d => d.atual += d.peso);
+    let escolhido = rotor[0];
+    rotor.forEach(d => { if (d.atual > escolhido.atual) escolhido = d; });
+    escolhido.atual -= pesoTotal;
+    return escolhido.id;
+  }
+
+  // Calcula quantos blocos de estudo cabem no total de horas líquidas do dia
+  function calcularBlocosPorDia(horasLiquidas, blocoMin){
+    const minutosLiquidos = horasLiquidas * 60;
+    return Math.max(1, Math.round(minutosLiquidos / blocoMin));
+  }
+
+  // Gera os horários (apenas rótulos relativos, já que o candidato define quando começa)
+  function gerarHorariosDoDia(qtdBlocos, blocoMin, descansoCurto, blocosAtePausa, pausaLonga){
+    const horarios = [];
+    let cursor = 8 * 60; // assume início às 08:00 — apenas referência visual
+    for (let i=1;i<=qtdBlocos;i++){
+      const inicio = cursor;
+      const fim = cursor + blocoMin;
+      horarios.push({ inicio, fim });
+      cursor = fim;
+      if (i < qtdBlocos){
+        const ehPausaLonga = (i % blocosAtePausa === 0);
+        cursor += ehPausaLonga ? pausaLonga : descansoCurto;
+      }
+    }
+    return horarios.map(h => {
+      const fmt = (min) => Utils.pad(Math.floor(min/60)%24)+':'+Utils.pad(min%60);
+      return fmt(h.inicio)+'–'+fmt(h.fim);
+    });
+  }
+
+  /**
+   * Gera o ciclo completo de estudos entre duas datas.
+   * Retorna um array de dias, cada um com uma lista de blocos.
+   */
+  function gerarCiclo(cfg, disciplinasAtivas){
+    const inicio = Utils.parseISO(cfg.DATA_INICIO_CICLO);
+    const vespera = Utils.addDays(Utils.parseISO(cfg.DATA_PROVA), -1);
+    const totalDias = Utils.daysBetween(inicio, vespera) + 1;
+    const blocosPorDia = calcularBlocosPorDia(cfg.HORAS_LIQUIDAS_DIA, cfg.BLOCO_MINUTOS);
+    const horarios = gerarHorariosDoDia(blocosPorDia, cfg.BLOCO_MINUTOS, cfg.DESCANSO_CURTO_MINUTOS, cfg.BLOCOS_ATE_PAUSA_LONGA, cfg.PAUSA_LONGA_MINUTOS);
+
+    const rotor = criarRotor(disciplinasAtivas);
+    const dias = [];
+
+    for (let i=0;i<totalDias;i++){
+      const data = Utils.addDays(inicio, i);
+      const iso = Utils.toISO(data);
+      const diaSemana = data.getDay();
+      const diasRestantesAteProva = Utils.daysBetween(data, Utils.parseISO(cfg.DATA_PROVA));
+      const emRevisaoFinal = diasRestantesAteProva <= cfg.DIAS_REVISAO_FINAL;
+
+      let tipoDia = 'normal';
+      if (cfg.DIAS_DESCANSO.includes(diaSemana)) tipoDia = 'descanso';
+      else if (diaSemana === cfg.DIA_SIMULADO) tipoDia = 'simulado';
+      if (emRevisaoFinal) tipoDia = 'revisao_final';
+
+      const blocos = [];
+
+      if (tipoDia === 'descanso'){
+        blocos.push({
+          id: Utils.uid(), disciplinaId: 'descanso', horario: '—',
+          descricao: 'Dia de descanso ativo — revisão leve opcional (flashcards, 45–60 min)',
+          concluido:false, avaliacao:0
+        });
+      } else if (tipoDia === 'simulado'){
+        for (let b=0;b<blocosPorDia;b++){
+          blocos.push({ id: Utils.uid(), disciplinaId:'simulado', horario: horarios[b] || '--:--', concluido:false, avaliacao:0 });
+        }
+      } else if (tipoDia === 'revisao_final'){
+        // Reta final: metade questões gerais (flashcards) + metade redação/reescrita + revisão dos pontos fracos
+        const foco = ['simulado','port','redacao_tdas','estudo_caso'];
+        for (let b=0;b<blocosPorDia;b++){
+          const discId = foco[b % foco.length];
+          blocos.push({ id: Utils.uid(), disciplinaId: discId, horario: horarios[b] || '--:--', concluido:false, avaliacao:0 });
+        }
+      } else {
+        for (let b=0;b<blocosPorDia;b++){
+          const discId = proximaDisciplina(rotor);
+          blocos.push({ id: Utils.uid(), disciplinaId: discId, horario: horarios[b] || '--:--', concluido:false, avaliacao:0 });
+        }
+      }
+
+      dias.push({ data: iso, tipoDia, blocos });
+    }
+    return dias;
+  }
+
+  return { gerarCiclo, calcularBlocosPorDia };
+})();
+
+/* =====================================================================================
+   MÓDULO 4 — ESTADO DA APLICAÇÃO (em memória; sincronizado com Google Sheets)
+   ===================================================================================== */
+const AppState = {
+  config: JSON.parse(JSON.stringify(APP_CONFIG)),
+  disciplinas: DISCIPLINAS,
+  ciclo: [],           // array de dias {data, tipoDia, blocos:[...]}
+  theme: 'dark',
+  sidebarCollapsed: false,
+  focusMode: false,
+  activeBlockRef: null // {diaIndex, blocoIndex} sincronizado com o timer
+};
+
+function getDisciplina(id){
+  if (id === 'simulado') return DISC_SIMULADO;
+  if (id === 'descanso') return { id:'descanso', nome:'Descanso ativo', cargo:'Comum', metodo:'Revisão leve', cor:'#6b7591' };
+  return AppState.disciplinas.find(d => d.id === id) || { id, nome:id, cargo:'Comum', cor:'#888' };
+}
+
+/* =====================================================================================
+   MÓDULO 5 — SINCRONIZAÇÃO COM GOOGLE SHEETS (Apps Script)
+   Sem uso de LocalStorage, conforme exigido. Os dados trafegam sempre para a planilha.
+   Caso a integração não esteja configurada, o app opera apenas em memória na sessão
+   e alerta visualmente o usuário (indicador "Sheets não conectado").
+   ===================================================================================== */
+const SheetsSync = (() => {
+
+  function estaConfigurado(){
+    return !!(AppState.config.SHEETS.APPS_SCRIPT_URL && AppState.config.SHEETS.APPS_SCRIPT_URL.startsWith('http'));
+  }
+
+  function atualizarIndicador(){
+    const dot = document.getElementById('syncDot');
+    const txt = document.getElementById('syncTxt');
+    if (estaConfigurado()){
+      dot.className = 'dot ok'; txt.textContent = 'Conectado ao Sheets';
+    } else {
+      dot.className = 'dot off'; txt.textContent = 'Sheets não conectado';
+    }
+  }
+
+  // Envia o estado inteiro (fire-and-forget, modo no-cors: não lemos a resposta)
+  async function push(){
+    if (!estaConfigurado()) return { ok:false, motivo:'não configurado' };
+    try{
+      const payload = {
+        acao: 'salvarEstado',
+        sheetId: AppState.config.SHEETS.SPREADSHEET_ID,
+        estado: {
+          config: AppState.config,
+          ciclo: AppState.ciclo,
+          atualizadoEm: new Date().toISOString()
+        }
+      };
+      await fetch(AppState.config.SHEETS.APPS_SCRIPT_URL, {
+        method:'POST',
+        mode:'no-cors', // Apps Script Web Apps geralmente exigem no-cors no client puro
+        headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      return { ok:true };
+    } catch(e){
+      console.warn('Falha ao salvar no Sheets:', e);
+      return { ok:false, erro:e };
+    }
+  }
+
+  // Busca o estado salvo (GET simples, resposta em JSON — precisa que o Apps Script
+  // devolva cabeçalhos permitindo leitura, ou seja aberto como "Qualquer pessoa")
+  async function pull(){
+    if (!estaConfigurado()) return null;
+    try{
+      const url = AppState.config.SHEETS.APPS_SCRIPT_URL + '?acao=carregarEstado&sheetId=' + encodeURIComponent(AppState.config.SHEETS.SPREADSHEET_ID);
+      const resp = await fetch(url, { method:'GET' });
+      if (!resp.ok) throw new Error('HTTP '+resp.status);
+      const json = await resp.json();
+      return json;
+    } catch(e){
+      console.warn('Falha ao carregar do Sheets:', e);
+      return null;
+    }
+  }
+
+  // Registra um evento pontual (bloco concluído) como linha de log — auditoria fina
+  async function logEvento(bloco, disciplina){
+    if (!estaConfigurado()) return;
+    try{
+      await fetch(AppState.config.SHEETS.APPS_SCRIPT_URL, {
+        method:'POST', mode:'no-cors',
+        headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          acao:'logBloco', sheetId: AppState.config.SHEETS.SPREADSHEET_ID,
+          disciplina: disciplina.nome, cargo: disciplina.cargo, avaliacao: bloco.avaliacao,
+          quando: new Date().toISOString()
+        })
+      });
+    } catch(e){ console.warn('Falha ao logar evento:', e); }
+  }
+
+  return { estaConfigurado, atualizarIndicador, push, pull, logEvento };
+})();
+
+const APPS_SCRIPT_TEMPLATE = `/**
+ * TEMPLATE — Apps Script para o "Ciclo SEDES-DF"
+ * Cole em Extensões > Apps Script na sua planilha e implante como Web App
+ * (Executar como: "Eu", Quem pode acessar: "Qualquer pessoa").
+ */
+function doPost(e) {
+  var body = JSON.parse(e.postData.contents);
+  var ss = SpreadsheetApp.openById(body.sheetId);
+
+  if (body.acao === 'salvarEstado') {
+    var aba = ss.getSheetByName('Estado') || ss.insertSheet('Estado');
+    aba.getRange('A1').setValue(JSON.stringify(body.estado));
+    return ContentService.createTextOutput('OK');
+  }
+
+  if (body.acao === 'logBloco') {
+    var log = ss.getSheetByName('Log') || ss.insertSheet('Log');
+    log.appendRow([body.quando, body.disciplina, body.cargo, body.avaliacao]);
+    return ContentService.createTextOutput('OK');
+  }
+
+  return ContentService.createTextOutput('Ação desconhecida');
+}
+
+function doGet(e) {
+  var sheetId = e.parameter.sheetId;
+  var ss = SpreadsheetApp.openById(sheetId);
+  var aba = ss.getSheetByName('Estado');
+  var conteudo = aba ? aba.getRange('A1').getValue() : '{}';
+  return ContentService.createTextOutput(conteudo)
+      .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+/* =====================================================================================
+   MÓDULO 6 — POMODORO / CRONÔMETRO / CONTAGEM REGRESSIVA
+   ===================================================================================== */
+const TimerModule = (() => {
+  // ---- Pomodoro sincronizado com blocos do ciclo ----
+  let pomFase = 'estudo';      // estudo | descanso | pausa
+  let pomSegundos = APP_CONFIG.BLOCO_MINUTOS * 60;
+  let pomTotal = pomSegundos;
+  let pomTimer = null;
+  let pomRodando = false;
+  let blocosConcluidosSeguidos = 0;
+
+  function pomAtualizarTela(){
+    document.getElementById('pomDisplay').textContent = Utils.secToMMSS(pomSegundos);
+    const fase = { estudo:'Bloco de estudo', descanso:'Descanso curto', pausa:'Pausa longa' }[pomFase];
+    document.getElementById('pomStatus').textContent = fase + ' — ' + Math.ceil(pomTotal/60) + ' min';
+  }
+  function pomProximaFase(){
+    if (pomFase === 'estudo'){
+      blocosConcluidosSeguidos++;
+      // marca o bloco ativo (se houver) como concluído automaticamente
+      if (AppState.activeBlockRef) UI.marcarBlocoConcluido(AppState.activeBlockRef, true);
+      if (blocosConcluidosSeguidos % AppState.config.BLOCOS_ATE_PAUSA_LONGA === 0){
+        pomFase = 'pausa'; pomTotal = AppState.config.PAUSA_LONGA_MINUTOS * 60;
+      } else {
+        pomFase = 'descanso'; pomTotal = AppState.config.DESCANSO_CURTO_MINUTOS * 60;
+      }
+    } else {
+      pomFase = 'estudo'; pomTotal = AppState.config.BLOCO_MINUTOS * 60;
+    }
+    pomSegundos = pomTotal;
+    pomAtualizarTela();
+  }
+  function pomTick(){
+    if (pomSegundos <= 0){ pomProximaFase(); return; }
+    pomSegundos--; pomAtualizarTela();
+  }
+  function pomStart(){ if (pomRodando) return; pomRodando = true; pomTimer = setInterval(pomTick, 1000); }
+  function pomPause(){ pomRodando = false; clearInterval(pomTimer); }
+  function pomReset(){ pomPause(); pomFase='estudo'; pomTotal = AppState.config.BLOCO_MINUTOS*60; pomSegundos = pomTotal; pomAtualizarTela(); }
+  function pomSkip(){ pomPause(); pomProximaFase(); }
+  function pomSincronizarComBloco(disciplinaNome){
+    document.getElementById('pomDiscLabel').textContent = 'Sincronizado: ' + disciplinaNome;
+  }
+
+  // ---- Cronômetro livre (contagem progressiva) ----
+  let stopSeg = 0, stopTimer = null, stopRodando = false;
+  function stopTick(){ stopSeg++; document.getElementById('stopDisplay').textContent = Utils.secToHMS(stopSeg); }
+  function stopStart(){ if (stopRodando) return; stopRodando = true; stopTimer = setInterval(stopTick, 1000); }
+  function stopPause(){ stopRodando = false; clearInterval(stopTimer); }
+  function stopReset(){ stopPause(); stopSeg = 0; document.getElementById('stopDisplay').textContent = '00:00:00'; }
+
+  // ---- Cronômetro regressivo configurável ----
+  let cdSeg = 25*60, cdTimer = null, cdRodando = false;
+  function cdAtualizar(){ document.getElementById('cdDisplay').textContent = Utils.secToMMSS(cdSeg); }
+  function cdTick(){ if (cdSeg<=0){ cdPause(); return; } cdSeg--; cdAtualizar(); }
+  function cdStart(){ if (cdRodando) return; cdRodando = true; cdTimer = setInterval(cdTick, 1000); }
+  function cdPause(){ cdRodando = false; clearInterval(cdTimer); }
+  function cdReset(){ cdPause(); cdSeg = Utils.clamp(parseInt(document.getElementById('countdownMinutes').value||25,10),1,180)*60; cdAtualizar(); }
+
+  function init(){
+    pomAtualizarTela();
+    document.getElementById('pomStart').onclick = pomStart;
+    document.getElementById('pomPause').onclick = pomPause;
+    document.getElementById('pomReset').onclick = pomReset;
+    document.getElementById('pomSkip').onclick = pomSkip;
+
+    document.getElementById('stopStart').onclick = stopStart;
+    document.getElementById('stopPause').onclick = stopPause;
+    document.getElementById('stopReset').onclick = stopReset;
+
+    document.getElementById('cdStart').onclick = cdStart;
+    document.getElementById('cdPause').onclick = cdPause;
+    document.getElementById('cdReset').onclick = cdReset;
+    document.getElementById('countdownMinutes').addEventListener('change', cdReset);
+    cdReset();
+  }
+
+  return { init, pomSincronizarComBloco, pomReset };
+})();
+
+/* =====================================================================================
+   MÓDULO 7 — ESTATÍSTICAS / RANKING / PREDIÇÃO
+   ===================================================================================== */
+const Stats = (() => {
+
+  function todosOsBlocos(){
+    const out = [];
+    AppState.ciclo.forEach((dia, di) => dia.blocos.forEach((b, bi) => out.push({ dia, bloco:b, di, bi })));
+    return out;
+  }
+
+  function contarHorasEstudadas(){
+    const feitos = todosOsBlocos().filter(x => x.bloco.concluido && x.bloco.disciplinaId !== 'descanso');
+    return feitos.length * (AppState.config.BLOCO_MINUTOS/60);
+  }
+
+  function progressoEdital(){
+    const total = todosOsBlocos().filter(x => x.bloco.disciplinaId !== 'descanso').length;
+    const feitos = todosOsBlocos().filter(x => x.bloco.concluido && x.bloco.disciplinaId !== 'descanso').length;
+    return { total, feitos, pct: total? Math.round(feitos/total*100) : 0 };
+  }
+
+  function rankingDisciplinas(){
+    const mapa = {};
+    todosOsBlocos().forEach(x => {
+      const id = x.bloco.disciplinaId;
+      if (id === 'descanso') return;
+      if (!mapa[id]) mapa[id] = { soma:0, qtdAval:0, feitos:0 };
+      if (x.bloco.concluido){
+        mapa[id].feitos++;
+        if (x.bloco.avaliacao > 0){ mapa[id].soma += x.bloco.avaliacao; mapa[id].qtdAval++; }
+      }
+    });
+    return Object.keys(mapa).map(id => {
+      const d = getDisciplina(id);
+      const m = mapa[id];
+      return { disciplina:d, media: m.qtdAval? (m.soma/m.qtdAval) : null, feitos:m.feitos };
+    }).sort((a,b) => {
+      // dificuldade primeiro: menor média de desempenho aparece no topo (precisa de mais reforço)
+      const am = a.media===null? 3 : a.media, bm = b.media===null? 3 : b.media;
+      return am - bm;
+    });
+  }
+
+  function predicaoAprovacao(){
+    const prog = progressoEdital();
+    const ranking = rankingDisciplinas();
+    const mediasValidas = ranking.filter(r => r.media !== null).map(r => r.media);
+    const mediaGeral = mediasValidas.length ? (mediasValidas.reduce((a,b)=>a+b,0)/mediasValidas.length) : 3;
+    // heurística simples e transparente: 60% peso no avanço do edital, 40% no desempenho autoavaliado
+    const score = (prog.pct/100)*0.6 + (mediaGeral/5)*0.4;
+    const pct = Math.round(score*100);
+    let label = 'Em construção';
+    if (prog.feitos < 5) label = 'Dados insuficientes';
+    else if (pct >= 75) label = 'Favorável';
+    else if (pct >= 50) label = 'Em evolução';
+    else label = 'Atenção necessária';
+    return { pct, label };
+  }
+
+  function estimativaConclusao(){
+    const prog = progressoEdital();
+    const feitosPorDia = calcularRitmoDiario();
+    const restantes = prog.total - prog.feitos;
+    if (feitosPorDia <= 0) return { dias:null, restantes };
+    const dias = Math.ceil(restantes / feitosPorDia);
+    return { dias, restantes, ritmo: feitosPorDia };
+  }
+
+  function calcularRitmoDiario(){
+    const diasComProgresso = AppState.ciclo.filter(d => d.blocos.some(b => b.concluido));
+    if (!diasComProgresso.length) return 0;
+    const totalFeitos = diasComProgresso.reduce((s,d) => s + d.blocos.filter(b=>b.concluido).length, 0);
+    return totalFeitos / diasComProgresso.length;
+  }
+
+  return { todosOsBlocos, contarHorasEstudadas, progressoEdital, rankingDisciplinas, predicaoAprovacao, estimativaConclusao };
+})();
+
+/* =====================================================================================
+   MÓDULO 8 — INTERFACE (renderização de todas as views)
+   ===================================================================================== */
+const UI = (() => {
+
+  function navegarPara(view){
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-'+view).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === view));
+    const titulos = {
+      dashboard:['Dashboard','Visão geral do seu ciclo de estudos'],
+      ciclo:['Ciclo de Estudos','Rodízio ponderado — TDAS 202 + EDAS 402'],
+      timer:['Timer & Pomodoro','Blocos de 50/10 com pausa longa a cada 3 blocos'],
+      estatisticas:['Estatísticas','Ranking de disciplinas e desempenho'],
+      config:['Configurações','Parâmetros do ciclo, prioridades e integração'],
+      exportar:['Exportar & Backup','JSON, Excel/CSV e PDF']
+    };
+    document.getElementById('pageTitle').textContent = titulos[view][0];
+    document.getElementById('pageSub').textContent = titulos[view][1];
+    if (view === 'ciclo') renderCiclo();
+    if (view === 'estatisticas') renderEstatisticas();
+    if (view === 'dashboard') renderDashboard();
+  }
+
+  /* ---------------- Countdown no topo ---------------- */
+  function renderCountdown(){
+    const hoje = new Date();
+    const prova = Utils.parseISO(AppState.config.DATA_PROVA);
+    const dias = Math.max(0, Utils.daysBetween(new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate()), prova));
+    document.getElementById('countdownChip').innerHTML = '🗓 Faltam <b>'+dias+'</b> dias para a prova (06/09/2026)';
+  }
+
+  /* ---------------- Dashboard ---------------- */
+  function renderDashboard(){
+    renderCountdown();
+    const prog = Stats.progressoEdital();
+    document.getElementById('statEdital').textContent = prog.pct + '%';
+    document.getElementById('barEdital').style.width = prog.pct + '%';
+    document.getElementById('capEdital').textContent = prog.feitos + ' de ' + prog.total + ' blocos concluídos';
+    document.getElementById('statHoras').textContent = Utils.minutesToClock(Stats.contarHorasEstudadas()*60);
+
+    const pred = Stats.predicaoAprovacao();
+    document.getElementById('statPredicao').textContent = pred.pct + '%';
+    document.getElementById('capPredicao').textContent = pred.label + ' — heurística: 60% avanço do edital + 40% autoavaliação';
+
+    // dia de hoje
+    const isoHoje = Utils.toISO(new Date());
+    const diaHoje = AppState.ciclo.find(d => d.data === isoHoje);
+    const doneCount = diaHoje ? diaHoje.blocos.filter(b=>b.concluido).length : 0;
+    const totalCount = diaHoje ? diaHoje.blocos.length : 0;
+    document.getElementById('todayDoneCount').textContent = doneCount;
+    document.getElementById('todayDateLabel').textContent = diaHoje ? Utils.fmtDatePt(Utils.parseISO(diaHoje.data)) : 'fora do período do ciclo';
+    document.getElementById('todayRange').textContent = diaHoje ? (diaHoje.blocos.length + ' blocos programados') : '';
+
+    const circunf = 2*Math.PI*56;
+    const ring = document.getElementById('ringToday');
+    const pctHoje = totalCount ? doneCount/totalCount : 0;
+    ring.setAttribute('stroke-dasharray', circunf);
+    ring.setAttribute('stroke-dashoffset', circunf - circunf*pctHoje);
+    document.getElementById('ringTodayLabel').textContent = doneCount+'/'+totalCount;
+
+    // lista de blocos de hoje
+    const cont = document.getElementById('todayBlocksList');
+    cont.innerHTML = '';
+    if (!diaHoje){
+      cont.innerHTML = '<p style="color:var(--text-faint);font-size:13px;">Hoje está fora do intervalo do ciclo gerado.</p>';
+    } else {
+      diaHoje.blocos.forEach((b, idx) => {
+        cont.appendChild(criarLinhaBloco(diaHoje, b, AppState.ciclo.indexOf(diaHoje), idx));
+      });
+    }
+
+    // alertas
+    renderAlertas(prog, pred);
+
+    // frase motivacional
+    document.getElementById('quoteBox').textContent = '“ ' + FRASES_MOTIVACIONAIS[Math.floor(Math.random()*FRASES_MOTIVACIONAIS.length)] + ' ”';
+
+    // ranking (top 6 mais fracos)
+    const ranking = Stats.rankingDisciplinas().slice(0,6);
+    const tbody = document.getElementById('rankingTable');
+    tbody.innerHTML = '';
+    if (!ranking.length){
+      tbody.innerHTML = '<tr><td colspan="4" style="color:var(--text-faint);">Ainda sem blocos concluídos e avaliados.</td></tr>';
+    } else {
+      ranking.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td>'+r.disciplina.nome+'</td>'+
+          '<td><span class="badge '+badgeClasse(r.disciplina.cargo)+'">'+r.disciplina.cargo+'</span></td>'+
+          '<td>'+(r.media!==null? r.media.toFixed(1)+' ★' : '—')+'</td>'+
+          '<td>'+r.feitos+'</td>';
+        tbody.appendChild(tr);
+      });
+    }
+
+    // estimativa
+    const est = Stats.estimativaConclusao();
+    const box = document.getElementById('estimativaBox');
+    if (est.dias === null){
+      box.innerHTML = '<p style="font-size:13px;color:var(--text-faint);">Conclua alguns blocos para calcularmos seu ritmo real de estudo.</p>';
+    } else {
+      box.innerHTML = '<div class="big" style="font-size:22px;">'+est.dias+' dias</div>'+
+        '<div class="cap">no ritmo atual de '+est.ritmo.toFixed(1)+' blocos/dia · restam '+est.restantes+' blocos</div>';
+    }
+  }
+
+  function renderAlertas(prog, pred){
+    const box = document.getElementById('alertsBox');
+    box.innerHTML = '';
+    const alerts = [];
+    const hoje = new Date();
+    const dias = Utils.daysBetween(new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate()), Utils.parseISO(AppState.config.DATA_PROVA));
+
+    if (dias <= APP_CONFIG.DIAS_REVISAO_FINAL) alerts.push({tipo:'warn', txt:'Reta final: priorize simulados e revisão de Português + Discursivas.'});
+    if (prog.pct < 30 && dias < 20) alerts.push({tipo:'warn', txt:'Ritmo abaixo do ideal para o tempo restante. Considere aumentar blocos/dia em Configurações.'});
+    if (!SheetsSync.estaConfigurado()) alerts.push({tipo:'info', txt:'Google Sheets não conectado — seus dados existem apenas nesta sessão. Configure o backup em Configurações.'});
+    const ranking = Stats.rankingDisciplinas();
+    const portu = ranking.find(r => r.disciplina.id === 'port');
+    if (portu && portu.media !== null && portu.media < 3) alerts.push({tipo:'warn', txt:'Desempenho baixo em Português — reforce reescrita e interpretação com questões da banca Quadrix.'});
+    if (prog.pct >= 90) alerts.push({tipo:'good', txt:'Ciclo quase concluído! Hora de intensificar simulados cronometrados.'});
+    if (!alerts.length) alerts.push({tipo:'info', txt:'Nenhum alerta no momento. Continue firme no ciclo.'});
+
+    alerts.forEach(a => {
+      const div = document.createElement('div');
+      div.className = 'alert ' + a.tipo;
+      div.textContent = (a.tipo==='warn'?'⚠ ':a.tipo==='good'?'✓ ':'ℹ ') + a.txt;
+      box.appendChild(div);
+    });
+  }
+
+  function badgeClasse(cargo){
+    if (cargo === 'TDAS') return 'tdas';
+    if (cargo === 'EDAS') return 'edas';
+    if (cargo === 'Comum') return 'comum';
+    return 'comum';
+  }
+
+  /* ---------------- Ciclo (lista completa por dia) ---------------- */
+  function criarLinhaBloco(dia, bloco, diaIndex, blocoIndex){
+    const disc = getDisciplina(bloco.disciplinaId);
+    const row = document.createElement('div');
+    row.className = 'block-row' + (bloco.concluido ? ' done' : '');
+    const estrelas = [1,2,3,4,5].map(n => '<span data-n="'+n+'" class="'+(bloco.avaliacao>=n?'on':'')+'">★</span>').join('');
+    row.innerHTML =
+      '<div class="block-time">'+bloco.horario+'</div>'+
+      '<div class="block-disc"><span class="color-dot" style="background:'+disc.cor+'"></span>'+
+        '<div><div class="name">'+disc.nome+'</div><div class="meta">'+(disc.metodo||'')+' · <span class="badge '+badgeClasse(disc.cargo)+'">'+disc.cargo+'</span></div></div></div>'+
+      '<div class="stars">'+estrelas+'</div>'+
+      '<button class="btn sm '+(bloco.concluido?'ghost':'primary')+'">'+(bloco.concluido?'Desfazer':'Concluir')+'</button>';
+
+    // estrelas de avaliação
+    row.querySelectorAll('.stars span').forEach(st => {
+      st.addEventListener('click', (e) => {
+        e.stopPropagation();
+        bloco.avaliacao = parseInt(st.dataset.n,10);
+        SheetsSync.push();
+        renderCiclo(); renderDashboard();
+      });
+    });
+    // botão concluir
+    row.querySelector('button').addEventListener('click', (e) => {
+      e.stopPropagation();
+      marcarBlocoConcluido({diaIndex, blocoIndex}, !bloco.concluido);
+    });
+    // clique na linha sincroniza com o timer
+    row.addEventListener('click', () => {
+      AppState.activeBlockRef = {diaIndex, blocoIndex};
+      TimerModule.pomSincronizarComBloco(disc.nome);
+      navegarParaView('timer');
+    });
+    return row;
+  }
+
+  function marcarBlocoConcluido(ref, valor){
+    const dia = AppState.ciclo[ref.diaIndex];
+    const bloco = dia.blocos[ref.blocoIndex];
+    bloco.concluido = valor;
+    if (valor && bloco.avaliacao === 0) bloco.avaliacao = 3; // avaliação neutra padrão
+    SheetsSync.push();
+    if (valor) SheetsSync.logEvento(bloco, getDisciplina(bloco.disciplinaId));
+    renderDashboard();
+    if (document.getElementById('view-ciclo').classList.contains('active')) renderCiclo();
+  }
+
+  function navegarParaView(view){
+    document.querySelector('.nav-item[data-view="'+view+'"]').click();
+  }
+
+  function renderCiclo(){
+    const cont = document.getElementById('cicloContainer');
+    cont.innerHTML = '';
+    const filtroCargo = document.getElementById('filterCargo').value;
+    const filtroStatus = document.getElementById('filterStatus').value;
+    const isoHoje = Utils.toISO(new Date());
+
+    AppState.ciclo.forEach((dia, di) => {
+      const blocosFiltrados = dia.blocos.filter(b => {
+        const disc = getDisciplina(b.disciplinaId);
+        if (filtroCargo !== 'todos' && disc.cargo !== filtroCargo && !(filtroCargo==='Comum'&&disc.cargo==='Comum')) {
+          if (disc.cargo !== filtroCargo) return false;
+        }
+        if (filtroStatus === 'pendente' && b.concluido) return false;
+        if (filtroStatus === 'feito' && !b.concluido) return false;
+        return true;
+      });
+      if (!blocosFiltrados.length) return;
+
+      const group = document.createElement('div');
+      group.className = 'day-group';
+      group.id = 'day-'+dia.data;
+      const feitos = dia.blocos.filter(b=>b.concluido).length;
+      const tipoLabel = {normal:'Ciclo regular', descanso:'Descanso', simulado:'Simulado geral', revisao_final:'Revisão final'}[dia.tipoDia];
+      group.innerHTML =
+        '<div class="day-head"><div class="d-left"><b>'+Utils.fmtDatePt(Utils.parseISO(dia.data))+'</b>'+
+        (dia.data===isoHoje?'<span class="badge ok">HOJE</span>':'')+
+        '<span class="tag">'+tipoLabel+' · '+feitos+'/'+dia.blocos.length+' concluídos</span></div><div>▾</div></div>'+
+        '<div class="day-blocks"></div>';
+      const blocksWrap = group.querySelector('.day-blocks');
+      blocosFiltrados.forEach(b => {
+        const blocoIndex = dia.blocos.indexOf(b);
+        blocksWrap.appendChild(criarLinhaBloco(dia, b, di, blocoIndex));
+      });
+      group.querySelector('.day-head').addEventListener('click', () => blocksWrap.classList.toggle('open'));
+      if (dia.data === isoHoje) blocksWrap.classList.add('open');
+      cont.appendChild(group);
+    });
+  }
+
+  /* ---------------- Estatísticas ---------------- */
+  function renderEstatisticas(){
+    const prog = Stats.progressoEdital();
+    document.getElementById('es-total').textContent = prog.total;
+    document.getElementById('es-feitos').textContent = prog.feitos;
+    const ranking = Stats.rankingDisciplinas();
+    const validas = ranking.filter(r=>r.media!==null);
+    const media = validas.length ? (validas.reduce((s,r)=>s+r.media,0)/validas.length) : 0;
+    document.getElementById('es-media').textContent = media.toFixed(1) + ' ★';
+
+    const barrasBox = document.getElementById('es-barras');
+    barrasBox.innerHTML = '';
+    const maxFeitos = Math.max(1, ...ranking.map(r=>r.feitos));
+    ranking.forEach(r => {
+      const horas = (r.feitos * AppState.config.BLOCO_MINUTOS/60).toFixed(1);
+      const pctBar = Math.round((r.feitos/maxFeitos)*100);
+      const row = document.createElement('div');
+      row.style.marginBottom = '12px';
+      row.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;">'+
+        '<span>'+r.disciplina.nome+'</span><span class="mono">'+horas+'h</span></div>'+
+        '<div class="bar-track"><div class="bar-fill" style="width:'+pctBar+'%;background:'+r.disciplina.cor+';"></div></div>';
+      barrasBox.appendChild(row);
+    });
+
+    const cargosBox = document.getElementById('es-cargos');
+    cargosBox.innerHTML = '';
+    ['TDAS','EDAS','Comum'].forEach(cargo => {
+      const blocos = Stats.todosOsBlocos().filter(x => getDisciplina(x.bloco.disciplinaId).cargo === cargo && x.bloco.disciplinaId!=='descanso');
+      const feitos = blocos.filter(x=>x.bloco.concluido).length;
+      const pct = blocos.length ? Math.round(feitos/blocos.length*100) : 0;
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.innerHTML = '<h3>'+cargo+'</h3><div class="big" style="font-size:22px;">'+pct+'%</div>'+
+        '<div class="bar-track" style="margin-top:6px;"><div class="bar-fill" style="width:'+pct+'%;background:var(--gold);"></div></div>'+
+        '<div class="cap">'+feitos+' / '+blocos.length+' blocos</div>';
+      cargosBox.appendChild(div);
+    });
+  }
+
+  /* ---------------- Configurações ---------------- */
+  function preencherConfigForm(){
+    document.getElementById('cfgHoras').value = AppState.config.HORAS_LIQUIDAS_DIA;
+    document.getElementById('cfgBloco').value = AppState.config.BLOCO_MINUTOS;
+    document.getElementById('cfgDescansoCurto').value = AppState.config.DESCANSO_CURTO_MINUTOS;
+    document.getElementById('cfgBlocosPausa').value = AppState.config.BLOCOS_ATE_PAUSA_LONGA;
+    document.getElementById('cfgPausaLonga').value = AppState.config.PAUSA_LONGA_MINUTOS;
+    document.getElementById('cfgDataProva').value = AppState.config.DATA_PROVA;
+    document.getElementById('cfgDiaSimulado').value = AppState.config.DIA_SIMULADO;
+    document.querySelectorAll('.wd-chk').forEach(chk => {
+      chk.checked = AppState.config.DIAS_DESCANSO.includes(parseInt(chk.value,10));
+    });
+    document.getElementById('cfgScriptUrl').value = AppState.config.SHEETS.APPS_SCRIPT_URL;
+    document.getElementById('cfgSheetId').value = AppState.config.SHEETS.SPREADSHEET_ID;
+    document.getElementById('appsScriptTemplate').value = APPS_SCRIPT_TEMPLATE;
+
+    const tbody = document.getElementById('priorityTable');
+    tbody.innerHTML = '';
+    AppState.disciplinas.forEach(d => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td>'+d.nome+'</td><td><span class="badge '+badgeClasse(d.cargo)+'">'+d.cargo+'</span></td>'+
+        '<td><div class="pill-select" data-id="'+d.id+'">'+
+        [1,2,3,4,5].map(n=>'<button data-n="'+n+'" class="'+(d.prioridade===n?'active':'')+'">'+n+'</button>').join('')+
+        '</div></td>';
+      tbody.appendChild(tr);
+      tr.querySelectorAll('.pill-select button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          d.prioridade = parseInt(btn.dataset.n,10);
+          tr.querySelectorAll('.pill-select button').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+        });
+      });
+    });
+  }
+
+  function init(){
+    // navegação
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => navegarPara(item.dataset.view));
+    });
+
+    // sidebar recolher
+    document.getElementById('btnSidebar').addEventListener('click', () => {
+      const sb = document.getElementById('sidebar');
+      if (window.innerWidth <= 900){ sb.classList.toggle('mobile-open'); }
+      else { sb.classList.toggle('collapsed'); }
+    });
+
+    // tema
+    document.getElementById('btnTheme').addEventListener('click', toggleTheme);
+    document.getElementById('cfgThemeDark').addEventListener('click', () => setTheme('dark'));
+    document.getElementById('cfgThemeLight').addEventListener('click', () => setTheme('light'));
+
+    // modo foco
+    document.getElementById('btnFocus').addEventListener('click', () => {
+      document.body.classList.add('focus-mode');
+      document.getElementById('btnFocusExit').style.display = 'inline-flex';
+      navegarParaView('timer');
+    });
+    document.getElementById('btnFocusExit').addEventListener('click', () => {
+      document.body.classList.remove('focus-mode');
+      document.getElementById('btnFocusExit').style.display = 'none';
+    });
+
+    // filtros do ciclo
+    document.getElementById('filterCargo').addEventListener('change', renderCiclo);
+    document.getElementById('filterStatus').addEventListener('change', renderCiclo);
+    document.getElementById('btnHojeScroll').addEventListener('click', () => {
+      const el = document.getElementById('day-'+Utils.toISO(new Date()));
+      if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+    document.getElementById('btnRegenerar').addEventListener('click', () => {
+      gerarNovoCiclo(); renderCiclo(); renderDashboard();
+    });
+
+    // configurações — salvar
+    document.getElementById('btnSalvarConfig').addEventListener('click', () => {
+      AppState.config.HORAS_LIQUIDAS_DIA = parseFloat(document.getElementById('cfgHoras').value) || 6;
+      AppState.config.BLOCO_MINUTOS = parseInt(document.getElementById('cfgBloco').value,10) || 50;
+      AppState.config.DESCANSO_CURTO_MINUTOS = parseInt(document.getElementById('cfgDescansoCurto').value,10) || 10;
+      AppState.config.BLOCOS_ATE_PAUSA_LONGA = parseInt(document.getElementById('cfgBlocosPausa').value,10) || 3;
+      AppState.config.PAUSA_LONGA_MINUTOS = parseInt(document.getElementById('cfgPausaLonga').value,10) || 30;
+      AppState.config.DATA_PROVA = document.getElementById('cfgDataProva').value || AppState.config.DATA_PROVA;
+      AppState.config.DIA_SIMULADO = parseInt(document.getElementById('cfgDiaSimulado').value,10);
+      AppState.config.DIAS_DESCANSO = Array.from(document.querySelectorAll('.wd-chk:checked')).map(c=>parseInt(c.value,10));
+      TimerModule.pomReset();
+      gerarNovoCiclo();
+      renderDashboard();
+      alert('Configurações salvas e ciclo regerado com sucesso.');
+    });
+
+    // sheets
+    document.getElementById('btnConectarSheets').addEventListener('click', async () => {
+      AppState.config.SHEETS.APPS_SCRIPT_URL = document.getElementById('cfgScriptUrl').value.trim();
+      AppState.config.SHEETS.SPREADSHEET_ID = document.getElementById('cfgSheetId').value.trim();
+      AppState.config.SHEETS.ENABLED = SheetsSync.estaConfigurado();
+      SheetsSync.atualizarIndicador();
+      const r = await SheetsSync.push();
+      alert(r.ok ? 'Conectado! Estado inicial enviado à planilha.' : 'Não foi possível confirmar o envio (verifique a URL e o deploy do Apps Script).');
+    });
+    document.getElementById('btnSalvarAgora').addEventListener('click', async () => {
+      const r = await SheetsSync.push();
+      alert(r.ok ? 'Backup enviado à planilha com sucesso.' : 'Falha ao enviar — confira a configuração do Apps Script.');
+    });
+    document.getElementById('btnCopiarLink').addEventListener('click', copiarLinkComConfiguracao);
+    document.getElementById('btnPuxarSheets').addEventListener('click', async () => {
+      const dados = await SheetsSync.pull();
+      if (dados && dados.config && dados.ciclo){
+        AppState.config = dados.config; AppState.ciclo = dados.ciclo;
+        preencherConfigForm(); renderDashboard(); renderCiclo();
+        alert('Dados carregados da planilha.');
+      } else {
+        alert('Nenhum dado encontrado ou integração não configurada.');
+      }
+    });
+
+    // exportação
+    document.getElementById('expJson').addEventListener('click', exportarJSON);
+    document.getElementById('expCsv').addEventListener('click', exportarCSV);
+    document.getElementById('expPdf').addEventListener('click', () => window.print());
+    document.getElementById('importFile').addEventListener('change', importarJSON);
+
+    preencherConfigForm();
+    SheetsSync.atualizarIndicador();
+  }
+
+  function toggleTheme(){ setTheme(AppState.theme === 'dark' ? 'light' : 'dark'); }
+  function setTheme(t){
+    AppState.theme = t;
+    document.body.setAttribute('data-theme', t);
+    document.getElementById('btnTheme').textContent = t === 'dark' ? '☀' : '🌙';
+  }
+
+  // Monta a URL atual da página + os parâmetros scriptUrl/sheetId já preenchidos
+  // nos campos de Configurações, e copia para a área de transferência. Isso
+  // substitui o passo manual de "montar o link" descrito nas instruções acima.
+  function copiarLinkComConfiguracao(){
+    const scriptUrl = document.getElementById('cfgScriptUrl').value.trim();
+    const sheetId = document.getElementById('cfgSheetId').value.trim();
+
+    if (!scriptUrl || !sheetId){
+      alert('Preencha e conecte a "URL do Apps Script" e o "ID da planilha" antes de gerar o link.');
+      return;
+    }
+
+    // Base da URL atual sem querystring nem hash (funciona para file://, http:// e https://)
+    const base = window.location.origin + window.location.pathname;
+    const params = new URLSearchParams();
+    params.set('scriptUrl', scriptUrl);
+    params.set('sheetId', sheetId);
+    const linkFinal = base + '?' + params.toString();
+
+    const preview = document.getElementById('linkPreview');
+    const wrap = document.getElementById('linkPreviewWrap');
+    preview.value = linkFinal;
+    wrap.hidden = false;
+
+    // Tenta copiar automaticamente; se o navegador bloquear (ex.: file:// em alguns
+    // casos), o campo acima já fica visível e selecionável para copiar manualmente.
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(linkFinal)
+        .then(() => alert('Link copiado! Agora é só colar na barra de endereço, abrir e favoritar (Ctrl+D / Cmd+D).'))
+        .catch(() => { preview.select(); alert('Não foi possível copiar automaticamente. O link já está selecionado no campo — use Ctrl+C / Cmd+C.'); });
+    } else {
+      preview.select();
+      alert('Copie o link selecionado no campo abaixo do botão (Ctrl+C / Cmd+C).');
+    }
+  }
+
+  function exportarJSON(){
+    const data = { config: AppState.config, disciplinas: AppState.disciplinas, ciclo: AppState.ciclo, exportadoEm: new Date().toISOString() };
+    Utils.downloadBlob(JSON.stringify(data, null, 2), 'ciclo-sedes-df-backup.json', 'application/json');
+  }
+  function exportarCSV(){
+    let csv = 'Data;Tipo do dia;Horario;Disciplina;Cargo;Metodo;Concluido;Avaliacao\n';
+    AppState.ciclo.forEach(dia => {
+      dia.blocos.forEach(b => {
+        const d = getDisciplina(b.disciplinaId);
+        csv += [dia.data, dia.tipoDia, b.horario, '"'+d.nome+'"', d.cargo, (d.metodo||''), (b.concluido?'Sim':'Não'), b.avaliacao].join(';') + '\n';
+      });
+    });
+    Utils.downloadBlob(csv, 'ciclo-sedes-df.csv', 'text/csv;charset=utf-8');
+  }
+  function importarJSON(e){
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try{
+        const data = JSON.parse(ev.target.result);
+        if (data.config) AppState.config = data.config;
+        if (data.disciplinas) AppState.disciplinas = data.disciplinas;
+        if (data.ciclo) AppState.ciclo = data.ciclo;
+        preencherConfigForm(); renderDashboard(); renderCiclo();
+        alert('Backup importado com sucesso.');
+      } catch(err){ alert('Arquivo inválido.'); }
+    };
+    reader.readAsText(file);
+  }
+
+  return { init, navegarPara, renderDashboard, renderCiclo, renderEstatisticas, marcarBlocoConcluido, preencherConfigForm };
+})();
+
+/* =====================================================================================
+   MÓDULO 9 — INICIALIZAÇÃO
+   ===================================================================================== */
+function gerarNovoCiclo(){
+  AppState.ciclo = CycleEngine.gerarCiclo(AppState.config, AppState.disciplinas);
+}
+
+function lerParametrosDeURL(){
+  // Permite reconectar ao Sheets sem LocalStorage, via querystring salva nos favoritos
+  const params = new URLSearchParams(window.location.search);
+  const scriptUrl = params.get('scriptUrl');
+  const sheetId = params.get('sheetId');
+  if (scriptUrl) AppState.config.SHEETS.APPS_SCRIPT_URL = scriptUrl;
+  if (sheetId) AppState.config.SHEETS.SPREADSHEET_ID = sheetId;
+}
+
+async function iniciarApp(){
+  lerParametrosDeURL();
+  gerarNovoCiclo();
+  UI.init();
+  TimerModule.init();
+  UI.renderDashboard();
+
+  // Se veio configurado via URL, tenta puxar dados já existentes da planilha
+  if (SheetsSync.estaConfigurado()){
+    const dados = await SheetsSync.pull();
+    if (dados && dados.config && dados.ciclo){
+      AppState.config = dados.config; AppState.ciclo = dados.ciclo;
+      UI.preencherConfigForm(); UI.renderDashboard();
+    }
+  }
+
+  // atualização periódica do relógio/contagem regressiva no topo
+  setInterval(() => { if (document.getElementById('view-dashboard').classList.contains('active')) UI.renderDashboard(); }, 60000);
+}
+
+document.addEventListener('DOMContentLoaded', iniciarApp);
+</script>
+</body>
+</html>
