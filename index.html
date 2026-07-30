@@ -234,7 +234,7 @@ h1,h2,h3,h4{font-family:var(--font-display);font-weight:700;letter-spacing:.2px;
 .block-disc{display:flex;align-items:center;gap:9px;min-width:0;}
 .color-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
 .block-disc .name{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.block-disc .meta{font-size:11px;color:var(--text-faint);}
+.block-disc .meta{font-size:11px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
 .stars{display:flex;gap:2px;}
 .stars span{cursor:pointer;color:var(--border);font-size:14px;}
 .stars span.on{color:var(--gold);}
@@ -322,14 +322,59 @@ footer.app-foot{padding:18px 24px;color:var(--text-faint);font-size:11.5px;text-
   .card{box-shadow:none;border:1px solid #ccc;}
 }
 
+/* Vade Mecum — barra de progresso grande (rosa/roxo, referência à capa do PDF) */
+.vm-bar-track{background:var(--surface-2);border-radius:10px;height:22px;width:100%;overflow:hidden;border:1px solid var(--border);}
+.vm-bar-fill{
+  height:100%;border-radius:10px;
+  background:linear-gradient(90deg, var(--vm-rose), var(--vm-purple));
+  transition:width .5s ease;
+}
+:root{ --vm-rose:#c9487a; --vm-purple:#7a52c9; }
+.vm-faixa-atual{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  padding:16px 18px;border-radius:12px;background:linear-gradient(120deg, rgba(201,72,122,.12), rgba(122,82,201,.12));
+  border:1px solid var(--vm-rose);
+}
+.vm-faixa-atual b{font-family:var(--font-mono);font-size:20px;}
+
+/* Modal — Assunto do bloco (abre ao clicar num bloco do ciclo) */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(6,9,15,.62);backdrop-filter:blur(2px);
+  display:none;align-items:center;justify-content:center;z-index:200;padding:20px;
+}
+.modal-overlay.open{display:flex;animation:fadeUp .25s ease both;}
+.modal-box{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  max-width:560px;width:100%;padding:26px;box-shadow:var(--shadow);position:relative;
+  max-height:86vh;overflow-y:auto;
+}
+.modal-close{position:absolute;top:16px;right:16px;}
+.modal-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-faint);margin-bottom:6px;}
+.modal-box h2{font-size:19px;margin-bottom:4px;}
+.modal-topico{
+  margin-top:14px;padding:16px 18px;border-radius:12px;background:var(--gold-soft);
+  border:1px solid var(--gold);font-size:15px;line-height:1.5;
+}
+.modal-topico b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--gold);margin-bottom:6px;font-family:var(--font-body);}
+.modal-meta-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0;}
+.modal-flashcards{
+  display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:10px;padding:12px 14px;font-size:12.5px;margin-top:10px;
+}
+.modal-stars{display:flex;gap:4px;margin:14px 0;}
+.modal-stars span{cursor:pointer;color:var(--border);font-size:22px;}
+.modal-stars span.on{color:var(--gold);}
+.modal-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+
 @media (max-width:900px){
+
   .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);}
   .sidebar.mobile-open{transform:translateX(0);}
   .grid-4,.grid-3{grid-template-columns:1fr 1fr;}
 }
 </style>
 </head>
-<body data-theme="dark">
+<body data-theme="light">
 
 <div class="app-shell">
 
@@ -347,6 +392,7 @@ footer.app-foot{padding:18px 24px;color:var(--text-faint);font-size:11.5px;text-
       <div class="nav-item" data-view="ciclo"><span class="nav-icon">▤</span><span class="nav-label">Ciclo de Estudos</span></div>
       <div class="nav-item" data-view="timer"><span class="nav-icon">◷</span><span class="nav-label">Timer &amp; Pomodoro</span></div>
       <div class="nav-item" data-view="estatisticas"><span class="nav-icon">▲</span><span class="nav-label">Estatísticas</span></div>
+      <div class="nav-item" data-view="vademecum"><span class="nav-icon">📕</span><span class="nav-label">Vade Mecum</span></div>
       <div class="nav-item" data-view="config"><span class="nav-icon">⚙</span><span class="nav-label">Configurações</span></div>
       <div class="nav-item" data-view="exportar"><span class="nav-icon">⇩</span><span class="nav-label">Exportar &amp; Backup</span></div>
     </nav>
@@ -365,7 +411,7 @@ footer.app-foot{padding:18px 24px;color:var(--text-faint);font-size:11.5px;text-
       </div>
       <div class="countdown-chip" id="countdownChip">Carregando...</div>
       <button class="icon-btn no-print" id="btnFocus" title="Modo foco">◎</button>
-      <button class="icon-btn no-print" id="btnTheme" title="Alternar tema">☀</button>
+      <button class="icon-btn no-print" id="btnTheme" title="Alternar tema">🌙</button>
     </header>
 
     <main class="content" id="content">
@@ -521,6 +567,51 @@ footer.app-foot{padding:18px 24px;color:var(--text-faint);font-size:11.5px;text-
         </div>
       </section>
 
+      <!-- ===================== VIEW: VADE MECUM ===================== -->
+      <section class="view" id="view-vademecum">
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>Progresso da leitura — 228 páginas</h3>
+            <div class="vm-bar-track"><div class="vm-bar-fill" id="vmBarFill" style="width:0%;"></div></div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px;">
+              <span class="cap" id="vmPaginaAtualLabel">Página 0 de 228</span>
+              <span class="cap mono" id="vmPercentualLabel">0%</span>
+            </div>
+            <div class="form-row" style="margin-top:16px;">
+              <div class="field">
+                <label>Ajustar manualmente a página atual</label>
+                <input type="number" id="vmAjustePagina" min="0" max="228" placeholder="Ex: 167">
+                <small>Use se você leu fora do app — os blocos até essa página são marcados como concluídos.</small>
+              </div>
+              <div class="field" style="justify-content:flex-end;">
+                <label>&nbsp;</label>
+                <button class="btn primary" id="vmBtnAjustar">💾 Atualizar página atual</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Estimativa até a prova</h3>
+            <div id="vmEstimativaBox"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px;">
+          <div class="section-head" style="margin:0 0 8px;">
+            <h2 style="font-size:15px;">Próxima faixa a ler</h2>
+            <span class="sub">Sincronizada com o bloco "Vade Mecum" do ciclo</span>
+          </div>
+          <div id="vmProximaFaixaBox"></div>
+        </div>
+
+        <div class="card" style="margin-top:18px;">
+          <h3>Linha do tempo das faixas de leitura</h3>
+          <table>
+            <thead><tr><th>Data</th><th>Faixa de páginas</th><th>Status</th></tr></thead>
+            <tbody id="vmTimelineTable"></tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- ===================== VIEW: CONFIG ===================== -->
       <section class="view" id="view-config">
 
@@ -624,6 +715,35 @@ footer.app-foot{padding:18px 24px;color:var(--text-faint);font-size:11.5px;text-
 
 <button class="btn ghost focus-exit no-print" id="btnFocusExit" style="display:none;">✕ Sair do modo foco</button>
 
+<!-- ============================== MODAL: ASSUNTO DO BLOCO ============================== -->
+<div class="modal-overlay no-print" id="assuntoModal">
+  <div class="modal-box">
+    <button class="icon-btn modal-close" id="btnFecharAssunto">✕</button>
+    <div class="modal-eyebrow" id="assuntoTrilha">Trilha</div>
+    <h2 id="assuntoDisciplina">Disciplina</h2>
+    <div class="modal-meta-row">
+      <span class="badge" id="assuntoCargoBadge">Cargo</span>
+      <span class="cap" id="assuntoMetodo" style="margin:0;">Método</span>
+    </div>
+    <div class="modal-topico">
+      <b>Ponto exato do edital para este bloco</b>
+      <span id="assuntoTopicoTexto">—</span>
+    </div>
+    <div class="modal-flashcards">
+      <span>🔗</span>
+      <span>Resolva questões deste ponto em <a href="https://flashcardsconcursos.com.br/portal/home/" target="_blank" rel="noopener">flashcardsconcursos.com.br</a></span>
+    </div>
+    <div class="modal-eyebrow" style="margin-top:18px;">Como você avalia seu domínio deste ponto?</div>
+    <div class="modal-stars" id="assuntoStars">
+      <span data-n="1">★</span><span data-n="2">★</span><span data-n="3">★</span><span data-n="4">★</span><span data-n="5">★</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn primary" id="btnConcluirAssunto">✓ Marcar como concluído</button>
+      <button class="btn" id="btnIniciarPomodoroAssunto">▶ Iniciar Pomodoro deste bloco</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =====================================================================================
    CICLO SEDES-DF — GERADOR INTELIGENTE DE CICLO DE ESTUDOS
@@ -657,6 +777,9 @@ const APP_CONFIG = {
   DIA_SIMULADO: 6,        // sábado = simulado geral via Flashcards Concursos
   DIAS_REVISAO_FINAL: 3,  // últimos N dias antes da prova viram revisão geral + simulados
 
+  // ---- Vade Mecum SEDES-DF (legislação consolidada, Módulos I a III) ----
+  VADEMECUM_TOTAL_PAGINAS: 228,
+
   // ---- Google Sheets / Apps Script (preencher na tela Configurações) ----
   SHEETS: {
     SPREADSHEET_ID: '',
@@ -677,6 +800,7 @@ const APP_CONFIG = {
 let DISCIPLINAS = [
   { id:'port',          nome:'Português — Interpretação, Reescrita e Gramática', cargo:'Comum', metodo:'Questões + Reescrita', prioridade:5, cor:'#d4af37' },
   { id:'leg_df',        nome:'Legislação Distrital, DF, Lei Maria da Penha e 1º Socorros', cargo:'Comum', metodo:'Questões', prioridade:3, cor:'#d4af37' },
+  { id:'vademecum',     nome:'Vade Mecum SEDES-DF — Leitura da Legislação (228 páginas)', cargo:'Comum', metodo:'Leitura dirigida', prioridade:4, cor:'#c9487a' },
   { id:'prog_df',       nome:'Programas e Benefícios Socioassistenciais do DF', cargo:'Comum', metodo:'Questões', prioridade:4, cor:'#d4af37' },
   { id:'suas_tdas',     nome:'SUAS — Fundamentos, Organização e Gestão', cargo:'TDAS', metodo:'Teoria + Questões', prioridade:4, cor:'#35b0a7' },
   { id:'dconst',        nome:'Direito Constitucional', cargo:'TDAS', metodo:'Questões', prioridade:4, cor:'#35b0a7' },
@@ -694,6 +818,139 @@ let DISCIPLINAS = [
   { id:'estudo_caso',   nome:'Estudo de Caso — Discursiva Comunicação (EDAS)', cargo:'EDAS', metodo:'Discursiva', prioridade:3, cor:'#8c7ae6' }
 ];
 const DISC_SIMULADO = { id:'simulado', nome:'Simulado Geral — Flashcards Concursos', cargo:'Comum', metodo:'Simulado', prioridade:0, cor:'#e0654a' };
+
+/* ---------------------------------------------------------------------------------
+   MAPA DE TÓPICOS DO EDITAL (item 20 — Objetos de Avaliação)
+   Cada disciplina tem sua lista de pontos exatos cobrados na prova. O motor do
+   ciclo percorre essa lista em sequência a cada nova ocorrência da disciplina,
+   garantindo que, com o tempo, TODO o edital seja coberto — e não sempre o
+   mesmo assunto genérico da matéria.
+   --------------------------------------------------------------------------------- */
+const TOPICOS_EDITAL = {
+  port: [
+    'Compreensão e interpretação de textos de gêneros variados',
+    'Reconhecimento de tipos e gêneros textuais',
+    'Domínio da ortografia oficial',
+    'Coesão textual: referenciação, substituição, conectores e tempos/modos verbais',
+    'Morfossintaxe: classes de palavras, coordenação e subordinação',
+    'Pontuação, concordância verbal/nominal e regência verbal/nominal',
+    'Emprego do sinal indicativo de crase e colocação dos pronomes átonos',
+    'Reescrita de frases e parágrafos — significação e substituição de palavras',
+    'Reescrita de textos em diferentes gêneros e níveis de formalidade'
+  ],
+  leg_df: [
+    'Realidade étnica, social, histórica, geográfica, cultural, política e econômica do DF e da RIDE',
+    'Plano Distrital de Política para Mulheres (PDPM)',
+    'Lei Orgânica do DF — Título VI (Da Ordem Social e do Meio Ambiente)',
+    'LC nº 840/2011 — Título V (Dos Deveres) e Título VI (Regime Disciplinar)',
+    'LC nº 840/2011 — Título VII (Processos de Apuração de Infração Disciplinar)',
+    'Lei Maria da Penha (Lei Federal nº 11.340/2006) — mínimo de 3 questões garantidas',
+    'Lei Distrital nº 7.484/2024',
+    'Primeiros socorros: reconhecimento de urgência/emergência e acionamento do socorro',
+    'Primeiros socorros: engasgo, sangramento, fratura, queimadura, desmaio, convulsão e intoxicação'
+  ],
+  prog_df: [
+    'Programa Cartão Prato Cheio (Lei Distrital nº 7.009/2021)',
+    'Programa Cartão Gás (Lei Distrital nº 6.938/2021)',
+    'Plano DF Social (Lei Distrital nº 7.008/2021)',
+    'Benefícios Eventuais da Assistência Social do DF (Lei Distrital nº 5.165/2013)',
+    'SISAN / Restaurante Comunitário (Decreto nº 33.329/2011)'
+  ],
+  suas_tdas: [
+    'PNAS/2004 — princípios, diretrizes, proteções básica e especial',
+    'PNAS/2004 — matricialidade sociofamiliar e territorialização',
+    'SUAS — seguranças socioassistenciais (acolhida, convívio, renda, autonomia)',
+    'NOB/SUAS 2012 — responsabilidades dos entes e cofinanciamento',
+    'NOB/SUAS 2012 — gestão do trabalho e vigilância socioassistencial'
+  ],
+  dconst: [
+    'Constituição Federal — princípios fundamentais',
+    'Direitos e garantias fundamentais — direitos individuais e coletivos',
+    'Direitos sociais',
+    'Organização do Estado e da Administração Pública — disposições gerais e servidores públicos'
+  ],
+  dadm: [
+    'Estado, governo e administração pública — conceitos e elementos',
+    'Ato administrativo — requisitos, atributos e classificação',
+    'Ato administrativo — extinção (anulação e revogação)',
+    'Poderes da Administração — hierárquico, disciplinar, regulamentar e de polícia',
+    'Regime Jurídico dos Servidores do DF (LC 840/2011) — provimento e vacância',
+    'Regime Jurídico dos Servidores do DF (LC 840/2011) — direitos, deveres e PAD'
+  ],
+  arq: [
+    'Qualidade no atendimento ao público e trabalho em equipe',
+    'Noções de redação oficial e comunicações administrativas',
+    'Arquivologia — protocolo (recebimento, registro, distribuição, tramitação)',
+    'Arquivologia — tipos de arquivo e métodos de arquivamento',
+    'Preservação de documentos e noções de digitalização'
+  ],
+  rec_mat: [
+    'Administração de materiais — classificação e gestão de estoques',
+    'Administração de materiais — armazenagem',
+    'Gestão patrimonial — tombamento, controle e inventário',
+    'Gestão patrimonial — baixa de bens',
+    'Compras públicas (Lei nº 14.133/2021) — etapas do processo e noções de licitação'
+  ],
+  redacao_tdas: [
+    'Estrutura dissertativo-argumentativa — introdução, desenvolvimento e conclusão',
+    'Coesão e coerência textual aplicadas à redação',
+    'Prática de redação com temas de assistência social e administração pública',
+    'Critérios da banca: Conteúdo e Atendimento ao Comando (CAC)',
+    'Critérios da banca: Organização Textual (OT) e Domínio da Língua (DLP)'
+  ],
+  as_edas: [
+    'LOAS, PNAS/2004 e SUAS — princípios e organização da assistência social',
+    'NOB/SUAS — responsabilidades dos entes e estruturação da rede',
+    'NOB-RH/SUAS (Resolução CNAS nº 269/2006)',
+    'Tipificação Nacional de Serviços Socioassistenciais',
+    'Instâncias de pactuação, deliberação e controle social — CIT, CIB, Conselhos e Conferências',
+    'CadÚnico e Protocolo de Gestão Integrada de Serviços, Benefícios e Transferências de Renda',
+    'MROSC — parcerias, chamamento público e prestação de contas com OSCs'
+  ],
+  direitos_edas: [
+    'Crianças, adolescentes e juventude — ECA, acolhimento e SINASE',
+    'Mulheres e violência de gênero — Lei Maria da Penha e rede de atendimento',
+    'Pessoa idosa e pessoa com deficiência — Estatuto do Idoso e LBI',
+    'População em situação de rua — Política Nacional (Decreto nº 7.053/2009)',
+    'Diversidade, equidade e relações étnico-raciais'
+  ],
+  com_fund: [
+    'Processos fundamentais da comunicação e construção social da realidade',
+    'Teoria da Comunicação — principais escolas, correntes e pensadores',
+    'Cultura, representações sociais e natureza social da comunicação',
+    'O papel do comunicador na sociedade de massas e sua dimensão política'
+  ],
+  com_org: [
+    'Planejamento estratégico de comunicação organizacional',
+    'Mapeamento e relacionamento com públicos internos e externos',
+    'Comunicação dirigida, comunicação interna e institucional',
+    'Responsabilidade social e gestão de relacionamento com a comunidade',
+    'Pesquisas de opinião e de públicos (métodos qualitativos e quantitativos)'
+  ],
+  jorn: [
+    'Técnicas de assessoria de imprensa e relacionamento com a mídia',
+    'Produção de release, press-kit e notas oficiais',
+    'Organização de entrevistas coletivas e media training',
+    'Monitoramento de mídia (clipping) e análise de imagem',
+    'Gestão de comunicação em crise no setor público'
+  ],
+  com_dig: [
+    'Cibercultura, digitalização e sociedade em rede',
+    'Convergência midiática e novas mídias digitais',
+    'Planejamento e gestão de redes sociais institucionais',
+    'Produção de conteúdo para web e métricas de monitoramento digital'
+  ],
+  etica_com: [
+    'Noções de moral, ética e deontologia',
+    'Códigos de Ética — Jornalismo e Relações Públicas',
+    'Ética e responsabilidade na comunicação pública'
+  ],
+  estudo_caso: [
+    'Estrutura do estudo de caso dissertativo (comando da banca)',
+    'Aplicação de conceitos de comunicação institucional a cenários públicos reais',
+    'Prática cronometrada de estudos de caso anteriores da Quadrix'
+  ]
+};
 
 const FRASES_MOTIVACIONAIS = [
   'Quem sonha com a nomeação estuda a caderneta enquanto o outro dorme a sesta.',
@@ -806,6 +1063,22 @@ const CycleEngine = (() => {
     return { trilha, discId: proximaDisciplina(rotor) };
   }
 
+  // ------------------------------------------------------------------
+  // TÓPICOS: cada vez que uma disciplina aparece no ciclo, avança-se
+  // para o próximo ponto da lista de objetos de avaliação do edital
+  // (TOPICOS_EDITAL), garantindo cobertura completa do conteúdo ao
+  // longo das repetições, em vez de repetir sempre o mesmo assunto.
+  // ------------------------------------------------------------------
+  function criarControleDeTopicos(){ return {}; }
+  function proximoTopico(controle, discId){
+    const lista = TOPICOS_EDITAL[discId];
+    if (!lista || !lista.length) return null;
+    if (controle[discId] === undefined) controle[discId] = 0;
+    const topico = lista[controle[discId] % lista.length];
+    controle[discId]++;
+    return topico;
+  }
+
   // Calcula quantos blocos de estudo cabem no total de horas líquidas do dia
   function calcularBlocosPorDia(horasLiquidas, blocoMin){
     const minutosLiquidos = horasLiquidas * 60;
@@ -844,6 +1117,7 @@ const CycleEngine = (() => {
     const horarios = gerarHorariosDoDia(blocosPorDia, cfg.BLOCO_MINUTOS, cfg.DESCANSO_CURTO_MINUTOS, cfg.BLOCOS_ATE_PAUSA_LONGA, cfg.PAUSA_LONGA_MINUTOS);
 
     const motorTrilhas = criarMotorDeTrilhas(disciplinasAtivas);
+    const controleTopicos = criarControleDeTopicos();
     const dias = [];
 
     for (let i=0;i<totalDias;i++){
@@ -875,18 +1149,47 @@ const CycleEngine = (() => {
         const foco = ['simulado','port','redacao_tdas','estudo_caso'];
         for (let b=0;b<blocosPorDia;b++){
           const discId = foco[b % foco.length];
-          blocos.push({ id: Utils.uid(), disciplinaId: discId, horario: horarios[b] || '--:--', concluido:false, avaliacao:0 });
+          const topico = proximoTopico(controleTopicos, discId);
+          blocos.push({ id: Utils.uid(), disciplinaId: discId, topico, horario: horarios[b] || '--:--', concluido:false, avaliacao:0 });
         }
       } else {
         for (let b=0;b<blocosPorDia;b++){
           const escolha = proximoBlocoPorTrilha(motorTrilhas);
-          blocos.push({ id: Utils.uid(), disciplinaId: escolha.discId, trilha: escolha.trilha, horario: horarios[b] || '--:--', concluido:false, avaliacao:0 });
+          const topico = proximoTopico(controleTopicos, escolha.discId);
+          blocos.push({ id: Utils.uid(), disciplinaId: escolha.discId, trilha: escolha.trilha, topico, horario: horarios[b] || '--:--', concluido:false, avaliacao:0 });
         }
       }
 
       dias.push({ data: iso, tipoDia, blocos });
     }
+
+    atribuirPaginasVadeMecum(dias, cfg.VADEMECUM_TOTAL_PAGINAS);
     return dias;
+  }
+
+  // ------------------------------------------------------------------
+  // VADE MECUM: distribui as N páginas do documento entre todos os
+  // blocos "vademecum" já agendados no ciclo, em ordem cronológica, de
+  // forma que a última faixa termine exatamente na página final antes
+  // da prova. Cada bloco ganha paginaInicio/paginaFim (ex.: 160–167).
+  // ------------------------------------------------------------------
+  function atribuirPaginasVadeMecum(dias, totalPaginas){
+    const blocosVM = [];
+    dias.forEach(dia => dia.blocos.forEach(b => { if (b.disciplinaId === 'vademecum') blocosVM.push(b); }));
+    if (!blocosVM.length) return;
+
+    const paginasPorBloco = Math.max(1, Math.ceil(totalPaginas / blocosVM.length));
+    let cursor = 1;
+    blocosVM.forEach(b => {
+      if (cursor > totalPaginas){
+        // o livro já foi todo coberto antes do fim do ciclo — vira revisão geral
+        b.vmRevisao = true;
+      } else {
+        b.paginaInicio = cursor;
+        b.paginaFim = Math.min(totalPaginas, cursor + paginasPorBloco - 1);
+        cursor = b.paginaFim + 1;
+      }
+    });
   }
 
   return { gerarCiclo, calcularBlocosPorDia };
@@ -899,10 +1202,15 @@ const AppState = {
   config: JSON.parse(JSON.stringify(APP_CONFIG)),
   disciplinas: DISCIPLINAS,
   ciclo: [],           // array de dias {data, tipoDia, blocos:[...]}
-  theme: 'dark',
+  theme: 'light',
   sidebarCollapsed: false,
   focusMode: false,
-  activeBlockRef: null // {diaIndex, blocoIndex} sincronizado com o timer
+  activeBlockRef: null, // {diaIndex, blocoIndex} sincronizado com o timer
+  // vadeMecum.paginaAtual funciona como um "marcador manual": permite registrar
+  // que o candidato leu além do que os blocos concluídos indicam (leitura fora do
+  // app). A página exibida é sempre o maior valor entre esse marcador e a maior
+  // paginaFim entre os blocos "vademecum" já concluídos (ver Stats.vadeMecumProgresso).
+  vadeMecum: { paginaAtual: 0 }
 };
 
 function getDisciplina(id){
@@ -943,6 +1251,7 @@ const SheetsSync = (() => {
         estado: {
           config: AppState.config,
           ciclo: AppState.ciclo,
+          vadeMecum: AppState.vadeMecum,
           atualizadoEm: new Date().toISOString()
         }
       };
@@ -1184,7 +1493,38 @@ const Stats = (() => {
     return totalFeitos / diasComProgresso.length;
   }
 
-  return { todosOsBlocos, contarHorasEstudadas, progressoEdital, rankingDisciplinas, predicaoAprovacao, estimativaConclusao };
+  /* ---------------- Vade Mecum SEDES-DF (228 páginas) ---------------- */
+
+  // Lista, em ordem cronológica, todos os blocos "vademecum" do ciclo,
+  // já com referência ao dia/índices para navegação e edição.
+  function vadeMecumBlocos(){
+    const out = [];
+    AppState.ciclo.forEach((dia, di) => dia.blocos.forEach((b, bi) => {
+      if (b.disciplinaId === 'vademecum') out.push({ dia, bloco:b, di, bi });
+    }));
+    return out;
+  }
+
+  // Página atual = o maior valor entre o marcador manual (leitura fora do app)
+  // e a maior "paginaFim" entre os blocos já concluídos — registro automático.
+  function vadeMecumProgresso(){
+    const total = AppState.config.VADEMECUM_TOTAL_PAGINAS || 228;
+    const blocos = vadeMecumBlocos();
+    let maiorConcluida = 0;
+    blocos.forEach(x => { if (x.bloco.concluido && x.bloco.paginaFim) maiorConcluida = Math.max(maiorConcluida, x.bloco.paginaFim); });
+    const paginaAtual = Math.min(total, Math.max(AppState.vadeMecum.paginaAtual || 0, maiorConcluida));
+    const pct = total ? Math.round((paginaAtual/total)*100) : 0;
+    const restantes = total - paginaAtual;
+
+    const proxima = blocos.find(x => !x.bloco.concluido && !x.bloco.vmRevisao);
+    const hoje = new Date();
+    const diasRestantes = Math.max(0, Utils.daysBetween(new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate()), Utils.parseISO(AppState.config.DATA_PROVA)));
+    const ritmoNecessario = diasRestantes>0 ? (restantes/diasRestantes) : restantes;
+
+    return { total, paginaAtual, pct, restantes, proxima, diasRestantes, ritmoNecessario, blocos };
+  }
+
+  return { todosOsBlocos, contarHorasEstudadas, progressoEdital, rankingDisciplinas, predicaoAprovacao, estimativaConclusao, vadeMecumBlocos, vadeMecumProgresso };
 })();
 
 /* =====================================================================================
@@ -1201,6 +1541,7 @@ const UI = (() => {
       ciclo:['Ciclo de Estudos','Rodízio ponderado — TDAS 202 + EDAS 402'],
       timer:['Timer & Pomodoro','Blocos de 50/10 com pausa longa a cada 3 blocos'],
       estatisticas:['Estatísticas','Ranking de disciplinas e desempenho'],
+      vademecum:['Vade Mecum','Leitura dirigida da legislação — 228 páginas'],
       config:['Configurações','Parâmetros do ciclo, prioridades e integração'],
       exportar:['Exportar & Backup','JSON, Excel/CSV e PDF']
     };
@@ -1209,6 +1550,7 @@ const UI = (() => {
     if (view === 'ciclo') renderCiclo();
     if (view === 'estatisticas') renderEstatisticas();
     if (view === 'dashboard') renderDashboard();
+    if (view === 'vademecum') renderVadeMecum();
   }
 
   /* ---------------- Countdown no topo ---------------- */
@@ -1330,14 +1672,22 @@ const UI = (() => {
     const row = document.createElement('div');
     row.className = 'block-row' + (bloco.concluido ? ' done' : '');
     const estrelas = [1,2,3,4,5].map(n => '<span data-n="'+n+'" class="'+(bloco.avaliacao>=n?'on':'')+'">★</span>').join('');
+    let metaLinha;
+    if (bloco.disciplinaId === 'vademecum'){
+      metaLinha = bloco.vmRevisao
+        ? '📕 Revisão geral (livro já concluído)'
+        : '📕 Páginas ' + bloco.paginaInicio + '–' + bloco.paginaFim;
+    } else {
+      metaLinha = (bloco.topico ? '📖 '+bloco.topico+' · ' : '') + (disc.metodo||'');
+    }
     row.innerHTML =
       '<div class="block-time">'+bloco.horario+'</div>'+
       '<div class="block-disc"><span class="color-dot" style="background:'+disc.cor+'"></span>'+
-        '<div><div class="name">'+disc.nome+'</div><div class="meta">'+(disc.metodo||'')+' · <span class="badge '+badgeClasse(disc.cargo)+'">'+disc.cargo+'</span></div></div></div>'+
+        '<div><div class="name">'+disc.nome+'</div><div class="meta">'+metaLinha+' · <span class="badge '+badgeClasse(disc.cargo)+'">'+disc.cargo+'</span></div></div></div>'+
       '<div class="stars">'+estrelas+'</div>'+
       '<button class="btn sm '+(bloco.concluido?'ghost':'primary')+'">'+(bloco.concluido?'Desfazer':'Concluir')+'</button>';
 
-    // estrelas de avaliação
+    // estrelas de avaliação (ação rápida, sem abrir o modal)
     row.querySelectorAll('.stars span').forEach(st => {
       st.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1346,18 +1696,63 @@ const UI = (() => {
         renderCiclo(); renderDashboard();
       });
     });
-    // botão concluir
+    // botão concluir (ação rápida, sem abrir o modal)
     row.querySelector('button').addEventListener('click', (e) => {
       e.stopPropagation();
       marcarBlocoConcluido({diaIndex, blocoIndex}, !bloco.concluido);
     });
-    // clique na linha sincroniza com o timer
-    row.addEventListener('click', () => {
-      AppState.activeBlockRef = {diaIndex, blocoIndex};
-      TimerModule.pomSincronizarComBloco(disc.nome);
-      navegarParaView('timer');
-    });
+    // clique na linha abre o "Assunto do bloco": mostra o ponto exato do edital
+    // a ser estudado, em vez de ir direto para o cronômetro do Pomodoro.
+    row.addEventListener('click', () => abrirAssuntoModal(diaIndex, blocoIndex));
     return row;
+  }
+
+  /* ---------------- Modal: Assunto do bloco ---------------- */
+  let assuntoAtualRef = null; // {diaIndex, blocoIndex} do bloco exibido no modal
+
+  function abrirAssuntoModal(diaIndex, blocoIndex){
+    const bloco = AppState.ciclo[diaIndex].blocos[blocoIndex];
+    const disc = getDisciplina(bloco.disciplinaId);
+    assuntoAtualRef = { diaIndex, blocoIndex };
+
+    document.getElementById('assuntoTrilha').textContent = 'Trilha ' + (bloco.trilha || disc.cargo);
+    document.getElementById('assuntoDisciplina').textContent = disc.nome;
+    const badge = document.getElementById('assuntoCargoBadge');
+    badge.className = 'badge ' + badgeClasse(disc.cargo);
+    badge.textContent = disc.cargo;
+    document.getElementById('assuntoMetodo').textContent = disc.metodo || 'Questões';
+    if (bloco.disciplinaId === 'vademecum'){
+      document.getElementById('assuntoTopicoTexto').textContent = bloco.vmRevisao
+        ? 'O Vade Mecum já foi lido por completo nos blocos anteriores — aproveite este bloco para revisar pontos que ficaram com nota baixa.'
+        : 'Leia as páginas ' + bloco.paginaInicio + ' a ' + bloco.paginaFim + ' do Vade Mecum SEDES-DF (Módulos I a III).';
+    } else {
+      document.getElementById('assuntoTopicoTexto').textContent = bloco.topico
+        ? bloco.topico
+        : (bloco.disciplinaId === 'simulado'
+            ? 'Simulado geral cronometrado — resolva o máximo de questões variadas possível para medir seu ritmo real de prova.'
+            : 'Revisão livre desta disciplina — sem ponto específico atribuído a este bloco.');
+    }
+
+    // estrelas do modal refletem a avaliação atual do bloco
+    document.querySelectorAll('#assuntoStars span').forEach(st => {
+      st.classList.toggle('on', bloco.avaliacao >= parseInt(st.dataset.n,10));
+    });
+
+    const btnConcluir = document.getElementById('btnConcluirAssunto');
+    btnConcluir.textContent = bloco.concluido
+      ? '↺ Desfazer conclusão'
+      : (bloco.disciplinaId === 'vademecum' ? '✓ Marcar faixa como lida' : '✓ Marcar como concluído');
+
+    document.getElementById('assuntoModal').classList.add('open');
+  }
+
+  function fecharAssuntoModal(){
+    document.getElementById('assuntoModal').classList.remove('open');
+    assuntoAtualRef = null;
+  }
+
+  function refrescarModalAssunto(){
+    if (assuntoAtualRef) abrirAssuntoModal(assuntoAtualRef.diaIndex, assuntoAtualRef.blocoIndex);
   }
 
   function marcarBlocoConcluido(ref, valor){
@@ -1369,6 +1764,7 @@ const UI = (() => {
     if (valor) SheetsSync.logEvento(bloco, getDisciplina(bloco.disciplinaId));
     renderDashboard();
     if (document.getElementById('view-ciclo').classList.contains('active')) renderCiclo();
+    if (document.getElementById('view-vademecum').classList.contains('active')) renderVadeMecum();
   }
 
   function navegarParaView(view){
@@ -1452,6 +1848,61 @@ const UI = (() => {
         '<div class="cap">'+feitos+' / '+blocos.length+' blocos</div>';
       cargosBox.appendChild(div);
     });
+  }
+
+  /* ---------------- Vade Mecum SEDES-DF ---------------- */
+  function renderVadeMecum(){
+    const prog = Stats.vadeMecumProgresso();
+
+    document.getElementById('vmBarFill').style.width = prog.pct + '%';
+    document.getElementById('vmPaginaAtualLabel').textContent = 'Página ' + prog.paginaAtual + ' de ' + prog.total;
+    document.getElementById('vmPercentualLabel').textContent = prog.pct + '%';
+    document.getElementById('vmAjustePagina').value = prog.paginaAtual || '';
+
+    // estimativa até a prova
+    const estBox = document.getElementById('vmEstimativaBox');
+    if (prog.restantes <= 0){
+      estBox.innerHTML = '<div class="alert good">✓ Vade Mecum concluído! Use os blocos restantes para revisão dos pontos com nota baixa.</div>';
+    } else {
+      estBox.innerHTML =
+        '<div class="big" style="font-size:22px;">'+prog.restantes+' páginas restantes</div>'+
+        '<div class="cap">faltam '+prog.diasRestantes+' dias para a prova · ritmo necessário: '+prog.ritmoNecessario.toFixed(1)+' páginas/dia</div>';
+    }
+
+    // próxima faixa a ler
+    const proxBox = document.getElementById('vmProximaFaixaBox');
+    if (!prog.proxima){
+      proxBox.innerHTML = '<p style="color:var(--text-faint);font-size:13px;">Nenhum bloco de Vade Mecum pendente — todas as faixas já foram lidas.</p>';
+    } else {
+      const b = prog.proxima.bloco;
+      proxBox.innerHTML =
+        '<div class="vm-faixa-atual">'+
+          '<div><div class="cap">Agendada para '+Utils.fmtDatePt(Utils.parseISO(prog.proxima.dia.data))+'</div>'+
+          '<b>Páginas '+b.paginaInicio+'–'+b.paginaFim+'</b></div>'+
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+            '<button class="btn sm" id="vmBtnAbrirAssunto">📖 Abrir</button>'+
+            '<button class="btn primary sm" id="vmBtnMarcarLida">✓ Marcar como lida</button>'+
+          '</div>'+
+        '</div>';
+      document.getElementById('vmBtnAbrirAssunto').addEventListener('click', () => abrirAssuntoModal(prog.proxima.di, prog.proxima.bi));
+      document.getElementById('vmBtnMarcarLida').addEventListener('click', () => marcarBlocoConcluido({diaIndex:prog.proxima.di, blocoIndex:prog.proxima.bi}, true));
+    }
+
+    // linha do tempo completa das faixas
+    const tbody = document.getElementById('vmTimelineTable');
+    tbody.innerHTML = '';
+    if (!prog.blocos.length){
+      tbody.innerHTML = '<tr><td colspan="3" style="color:var(--text-faint);">Nenhum bloco de Vade Mecum foi agendado no ciclo atual.</td></tr>';
+    } else {
+      prog.blocos.forEach(x => {
+        const b = x.bloco;
+        const faixa = b.vmRevisao ? 'Revisão geral' : ('Páginas ' + b.paginaInicio + '–' + b.paginaFim);
+        const statusBadge = b.concluido ? '<span class="badge ok">Lida</span>' : '<span class="badge comum">Pendente</span>';
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td>'+Utils.fmtDateShort(Utils.parseISO(x.dia.data))+'</td><td>'+faixa+'</td><td>'+statusBadge+'</td>';
+        tbody.appendChild(tr);
+      });
+    }
   }
 
   /* ---------------- Configurações ---------------- */
@@ -1563,6 +2014,7 @@ const UI = (() => {
       const dados = await SheetsSync.pull();
       if (dados && dados.config && dados.ciclo){
         AppState.config = dados.config; AppState.ciclo = dados.ciclo;
+        if (dados.vadeMecum) AppState.vadeMecum = dados.vadeMecum;
         preencherConfigForm(); renderDashboard(); renderCiclo();
         alert('Dados carregados da planilha.');
       } else {
@@ -1575,6 +2027,51 @@ const UI = (() => {
     document.getElementById('expCsv').addEventListener('click', exportarCSV);
     document.getElementById('expPdf').addEventListener('click', () => window.print());
     document.getElementById('importFile').addEventListener('change', importarJSON);
+
+    // Vade Mecum — ajuste manual da página atual (leitura feita fora do app)
+    document.getElementById('vmBtnAjustar').addEventListener('click', () => {
+      const valor = Utils.clamp(parseInt(document.getElementById('vmAjustePagina').value,10) || 0, 0, AppState.config.VADEMECUM_TOTAL_PAGINAS || 228);
+      AppState.vadeMecum.paginaAtual = valor;
+      // sincroniza o status dos blocos: tudo até essa página vira concluído,
+      // o restante volta a pendente (mantém o ciclo coerente com a leitura real)
+      Stats.vadeMecumBlocos().forEach(x => {
+        if (x.bloco.vmRevisao) return;
+        x.bloco.concluido = x.bloco.paginaFim <= valor;
+      });
+      SheetsSync.push();
+      renderVadeMecum(); renderDashboard();
+      alert('Página atual do Vade Mecum atualizada para ' + valor + '.');
+    });
+
+    // modal "Assunto do bloco"
+    document.getElementById('btnFecharAssunto').addEventListener('click', fecharAssuntoModal);
+    document.getElementById('assuntoModal').addEventListener('click', (e) => {
+      if (e.target.id === 'assuntoModal') fecharAssuntoModal(); // clique fora do card fecha
+    });
+    document.querySelectorAll('#assuntoStars span').forEach(st => {
+      st.addEventListener('click', () => {
+        if (!assuntoAtualRef) return;
+        const bloco = AppState.ciclo[assuntoAtualRef.diaIndex].blocos[assuntoAtualRef.blocoIndex];
+        bloco.avaliacao = parseInt(st.dataset.n,10);
+        SheetsSync.push();
+        refrescarModalAssunto(); renderCiclo(); renderDashboard();
+      });
+    });
+    document.getElementById('btnConcluirAssunto').addEventListener('click', () => {
+      if (!assuntoAtualRef) return;
+      const bloco = AppState.ciclo[assuntoAtualRef.diaIndex].blocos[assuntoAtualRef.blocoIndex];
+      marcarBlocoConcluido(assuntoAtualRef, !bloco.concluido);
+      refrescarModalAssunto();
+    });
+    document.getElementById('btnIniciarPomodoroAssunto').addEventListener('click', () => {
+      if (!assuntoAtualRef) return;
+      const bloco = AppState.ciclo[assuntoAtualRef.diaIndex].blocos[assuntoAtualRef.blocoIndex];
+      const disc = getDisciplina(bloco.disciplinaId);
+      AppState.activeBlockRef = { diaIndex: assuntoAtualRef.diaIndex, blocoIndex: assuntoAtualRef.blocoIndex };
+      TimerModule.pomSincronizarComBloco(disc.nome + (bloco.topico ? ' — ' + bloco.topico : ''));
+      fecharAssuntoModal();
+      navegarParaView('timer');
+    });
 
     preencherConfigForm();
     SheetsSync.atualizarIndicador();
@@ -1624,15 +2121,16 @@ const UI = (() => {
   }
 
   function exportarJSON(){
-    const data = { config: AppState.config, disciplinas: AppState.disciplinas, ciclo: AppState.ciclo, exportadoEm: new Date().toISOString() };
+    const data = { config: AppState.config, disciplinas: AppState.disciplinas, ciclo: AppState.ciclo, vadeMecum: AppState.vadeMecum, exportadoEm: new Date().toISOString() };
     Utils.downloadBlob(JSON.stringify(data, null, 2), 'ciclo-sedes-df-backup.json', 'application/json');
   }
   function exportarCSV(){
-    let csv = 'Data;Tipo do dia;Horario;Disciplina;Cargo;Metodo;Concluido;Avaliacao\n';
+    let csv = 'Data;Tipo do dia;Horario;Disciplina;Cargo;Topico do edital;Paginas Vade Mecum;Metodo;Concluido;Avaliacao\n';
     AppState.ciclo.forEach(dia => {
       dia.blocos.forEach(b => {
         const d = getDisciplina(b.disciplinaId);
-        csv += [dia.data, dia.tipoDia, b.horario, '"'+d.nome+'"', d.cargo, (d.metodo||''), (b.concluido?'Sim':'Não'), b.avaliacao].join(';') + '\n';
+        const faixa = b.disciplinaId==='vademecum' ? (b.vmRevisao?'Revisão geral':(b.paginaInicio+'-'+b.paginaFim)) : '';
+        csv += [dia.data, dia.tipoDia, b.horario, '"'+d.nome+'"', d.cargo, '"'+(b.topico||'')+'"', faixa, (d.metodo||''), (b.concluido?'Sim':'Não'), b.avaliacao].join(';') + '\n';
       });
     });
     Utils.downloadBlob(csv, 'ciclo-sedes-df.csv', 'text/csv;charset=utf-8');
@@ -1647,6 +2145,7 @@ const UI = (() => {
         if (data.config) AppState.config = data.config;
         if (data.disciplinas) AppState.disciplinas = data.disciplinas;
         if (data.ciclo) AppState.ciclo = data.ciclo;
+        if (data.vadeMecum) AppState.vadeMecum = data.vadeMecum;
         preencherConfigForm(); renderDashboard(); renderCiclo();
         alert('Backup importado com sucesso.');
       } catch(err){ alert('Arquivo inválido.'); }
@@ -1654,7 +2153,7 @@ const UI = (() => {
     reader.readAsText(file);
   }
 
-  return { init, navegarPara, renderDashboard, renderCiclo, renderEstatisticas, marcarBlocoConcluido, preencherConfigForm };
+  return { init, navegarPara, renderDashboard, renderCiclo, renderEstatisticas, renderVadeMecum, marcarBlocoConcluido, preencherConfigForm };
 })();
 
 /* =====================================================================================
@@ -1685,6 +2184,7 @@ async function iniciarApp(){
     const dados = await SheetsSync.pull();
     if (dados && dados.config && dados.ciclo){
       AppState.config = dados.config; AppState.ciclo = dados.ciclo;
+      if (dados.vadeMecum) AppState.vadeMecum = dados.vadeMecum;
       UI.preencherConfigForm(); UI.renderDashboard();
     }
   }
