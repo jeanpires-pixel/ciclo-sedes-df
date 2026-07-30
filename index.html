@@ -619,6 +619,7 @@ footer.app-foot{padding:18px 24px;color:var(--text-faint);font-size:11.5px;text-
         <div class="card">
           <div class="form-row">
             <div class="field"><label>Horas líquidas por dia</label><input type="number" id="cfgHoras" step="0.5" min="1" max="14"></div>
+            <div class="field"><label>Horário em que você costuma começar a estudar</label><input type="time" id="cfgHoraInicio"></div>
             <div class="field"><label>Duração do bloco de estudo (min)</label><input type="number" id="cfgBloco" min="10" max="120"></div>
             <div class="field"><label>Descanso curto entre blocos (min)</label><input type="number" id="cfgDescansoCurto" min="0" max="60"></div>
             <div class="field"><label>Pausa longa após quantos blocos</label><input type="number" id="cfgBlocosPausa" min="1" max="10"></div>
@@ -767,6 +768,7 @@ const APP_CONFIG = {
 
   // ---- Rotina diária ----
   HORAS_LIQUIDAS_DIA: 6,
+  HORA_INICIO_ESTUDO: '08:00', // horário em que o primeiro bloco do dia começa (editável em Configurações)
   BLOCO_MINUTOS: 50,
   DESCANSO_CURTO_MINUTOS: 10,
   BLOCOS_ATE_PAUSA_LONGA: 3,
@@ -979,6 +981,14 @@ const Utils = (() => {
   }
   function fmtDateShort(date){ return String(date.getDate()).padStart(2,'0')+'/'+String(date.getMonth()+1).padStart(2,'0'); }
   function pad(n){ return String(n).padStart(2,'0'); }
+  // Converte "14:30" em minutos desde a meia-noite (870). Aceita "8:00","08:00" etc.
+  function horaParaMinutos(hhmm){
+    if (!hhmm || typeof hhmm !== 'string' || !hhmm.includes(':')) return 8*60;
+    const [h,m] = hhmm.split(':').map(Number);
+    if (!Number.isFinite(h) || !Number.isFinite(m)) return 8*60;
+    const hh = Math.max(0, Math.min(23,h)), mm = Math.max(0, Math.min(59,m));
+    return hh*60 + mm;
+  }
   function minutesToClock(totalMin){
     const h = Math.floor(totalMin/60), m = Math.round(totalMin%60);
     return h+'h'+pad(m);
@@ -1001,7 +1011,7 @@ const Utils = (() => {
     a.href = url; a.download = filename; document.body.appendChild(a); a.click();
     document.body.removeChild(a); URL.revokeObjectURL(url);
   }
-  return { parseISO, toISO, addDays, fmtDatePt, fmtDateShort, pad, minutesToClock, secToMMSS, secToHMS, daysBetween, uid, clamp, downloadBlob };
+  return { parseISO, toISO, addDays, fmtDatePt, fmtDateShort, pad, minutesToClock, secToMMSS, secToHMS, daysBetween, uid, clamp, downloadBlob, horaParaMinutos };
 })();
 
 /* =====================================================================================
@@ -1085,10 +1095,11 @@ const CycleEngine = (() => {
     return Math.max(1, Math.round(minutosLiquidos / blocoMin));
   }
 
-  // Gera os horários (apenas rótulos relativos, já que o candidato define quando começa)
-  function gerarHorariosDoDia(qtdBlocos, blocoMin, descansoCurto, blocosAtePausa, pausaLonga){
+  // Gera os horários de cada bloco a partir do horário de início configurado
+  // pelo candidato (ex.: "14:00"), em vez de assumir sempre 08:00.
+  function gerarHorariosDoDia(qtdBlocos, blocoMin, descansoCurto, blocosAtePausa, pausaLonga, horaInicio){
     const horarios = [];
-    let cursor = 8 * 60; // assume início às 08:00 — apenas referência visual
+    let cursor = Utils.horaParaMinutos(horaInicio || '08:00');
     for (let i=1;i<=qtdBlocos;i++){
       const inicio = cursor;
       const fim = cursor + blocoMin;
@@ -1114,7 +1125,7 @@ const CycleEngine = (() => {
     const vespera = Utils.addDays(Utils.parseISO(cfg.DATA_PROVA), -1);
     const totalDias = Utils.daysBetween(inicio, vespera) + 1;
     const blocosPorDia = calcularBlocosPorDia(cfg.HORAS_LIQUIDAS_DIA, cfg.BLOCO_MINUTOS);
-    const horarios = gerarHorariosDoDia(blocosPorDia, cfg.BLOCO_MINUTOS, cfg.DESCANSO_CURTO_MINUTOS, cfg.BLOCOS_ATE_PAUSA_LONGA, cfg.PAUSA_LONGA_MINUTOS);
+    const horarios = gerarHorariosDoDia(blocosPorDia, cfg.BLOCO_MINUTOS, cfg.DESCANSO_CURTO_MINUTOS, cfg.BLOCOS_ATE_PAUSA_LONGA, cfg.PAUSA_LONGA_MINUTOS, cfg.HORA_INICIO_ESTUDO);
 
     const motorTrilhas = criarMotorDeTrilhas(disciplinasAtivas);
     const controleTopicos = criarControleDeTopicos();
@@ -1174,6 +1185,11 @@ const CycleEngine = (() => {
   // da prova. Cada bloco ganha paginaInicio/paginaFim (ex.: 160–167).
   // ------------------------------------------------------------------
   function atribuirPaginasVadeMecum(dias, totalPaginas){
+    // Blindagem: se a configuração carregada for antiga/incompleta e não tiver
+    // esse campo, cai no padrão real do documento (228 páginas) em vez de gerar
+    // NaN — que, ao ser salvo em JSON, vira "null" e quebra a faixa exibida.
+    totalPaginas = Number(totalPaginas) > 0 ? Number(totalPaginas) : 228;
+
     const blocosVM = [];
     dias.forEach(dia => dia.blocos.forEach(b => { if (b.disciplinaId === 'vademecum') blocosVM.push(b); }));
     if (!blocosVM.length) return;
@@ -1217,6 +1233,17 @@ function getDisciplina(id){
   if (id === 'simulado') return DISC_SIMULADO;
   if (id === 'descanso') return { id:'descanso', nome:'Descanso ativo', cargo:'Comum', metodo:'Revisão leve', cor:'#6b7591' };
   return AppState.disciplinas.find(d => d.id === id) || { id, nome:id, cargo:'Comum', cor:'#888' };
+}
+
+// Mescla uma configuração vinda de fora (Sheets ou backup JSON importado) com os
+// valores padrão atuais do app. Isso evita que campos adicionados depois (como
+// VADEMECUM_TOTAL_PAGINAS) fiquem "undefined" quando se carrega um estado salvo
+// por uma versão mais antiga do sistema — a causa raiz do bug "faixa 1–null".
+function mesclarConfig(configSalva){
+  const base = JSON.parse(JSON.stringify(APP_CONFIG));
+  const resultado = Object.assign({}, base, configSalva || {});
+  resultado.SHEETS = Object.assign({}, base.SHEETS, (configSalva && configSalva.SHEETS) || {});
+  return resultado;
 }
 
 /* =====================================================================================
@@ -1508,20 +1535,23 @@ const Stats = (() => {
   // Página atual = o maior valor entre o marcador manual (leitura fora do app)
   // e a maior "paginaFim" entre os blocos já concluídos — registro automático.
   function vadeMecumProgresso(){
-    const total = AppState.config.VADEMECUM_TOTAL_PAGINAS || 228;
+    const total = Number(AppState.config.VADEMECUM_TOTAL_PAGINAS) > 0 ? Number(AppState.config.VADEMECUM_TOTAL_PAGINAS) : 228;
     const blocos = vadeMecumBlocos();
     let maiorConcluida = 0;
-    blocos.forEach(x => { if (x.bloco.concluido && x.bloco.paginaFim) maiorConcluida = Math.max(maiorConcluida, x.bloco.paginaFim); });
+    blocos.forEach(x => { if (x.bloco.concluido && Number.isFinite(x.bloco.paginaFim)) maiorConcluida = Math.max(maiorConcluida, x.bloco.paginaFim); });
     const paginaAtual = Math.min(total, Math.max(AppState.vadeMecum.paginaAtual || 0, maiorConcluida));
     const pct = total ? Math.round((paginaAtual/total)*100) : 0;
     const restantes = total - paginaAtual;
 
-    const proxima = blocos.find(x => !x.bloco.concluido && !x.bloco.vmRevisao);
+    // ignora blocos com faixa corrompida/legada (sem paginaInicio/paginaFim válidos)
+    // — eles precisam de "Regerar ciclo" para ganhar uma faixa nova e coerente.
+    const proxima = blocos.find(x => !x.bloco.concluido && !x.bloco.vmRevisao && Number.isFinite(x.bloco.paginaInicio) && Number.isFinite(x.bloco.paginaFim));
+    const temBlocosCorrompidos = blocos.some(x => !x.bloco.vmRevisao && !Number.isFinite(x.bloco.paginaFim));
     const hoje = new Date();
     const diasRestantes = Math.max(0, Utils.daysBetween(new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate()), Utils.parseISO(AppState.config.DATA_PROVA)));
     const ritmoNecessario = diasRestantes>0 ? (restantes/diasRestantes) : restantes;
 
-    return { total, paginaAtual, pct, restantes, proxima, diasRestantes, ritmoNecessario, blocos };
+    return { total, paginaAtual, pct, restantes, proxima, diasRestantes, ritmoNecessario, blocos, temBlocosCorrompidos };
   }
 
   return { todosOsBlocos, contarHorasEstudadas, progressoEdital, rankingDisciplinas, predicaoAprovacao, estimativaConclusao, vadeMecumBlocos, vadeMecumProgresso };
@@ -1674,9 +1704,10 @@ const UI = (() => {
     const estrelas = [1,2,3,4,5].map(n => '<span data-n="'+n+'" class="'+(bloco.avaliacao>=n?'on':'')+'">★</span>').join('');
     let metaLinha;
     if (bloco.disciplinaId === 'vademecum'){
+      const faixaValida = Number.isFinite(bloco.paginaInicio) && Number.isFinite(bloco.paginaFim);
       metaLinha = bloco.vmRevisao
         ? '📕 Revisão geral (livro já concluído)'
-        : '📕 Páginas ' + bloco.paginaInicio + '–' + bloco.paginaFim;
+        : (faixaValida ? '📕 Páginas ' + bloco.paginaInicio + '–' + bloco.paginaFim : '📕 ⚠ Regere o ciclo para definir a faixa');
     } else {
       metaLinha = (bloco.topico ? '📖 '+bloco.topico+' · ' : '') + (disc.metodo||'');
     }
@@ -1722,9 +1753,12 @@ const UI = (() => {
     badge.textContent = disc.cargo;
     document.getElementById('assuntoMetodo').textContent = disc.metodo || 'Questões';
     if (bloco.disciplinaId === 'vademecum'){
+      const faixaValida = Number.isFinite(bloco.paginaInicio) && Number.isFinite(bloco.paginaFim);
       document.getElementById('assuntoTopicoTexto').textContent = bloco.vmRevisao
         ? 'O Vade Mecum já foi lido por completo nos blocos anteriores — aproveite este bloco para revisar pontos que ficaram com nota baixa.'
-        : 'Leia as páginas ' + bloco.paginaInicio + ' a ' + bloco.paginaFim + ' do Vade Mecum SEDES-DF (Módulos I a III).';
+        : (faixaValida
+            ? 'Leia as páginas ' + bloco.paginaInicio + ' a ' + bloco.paginaFim + ' do Vade Mecum SEDES-DF (Módulos I a III).'
+            : 'Este bloco veio de uma versão antiga do ciclo, sem faixa de página definida. Vá em "Ciclo de Estudos" e clique em "🔄 Regerar ciclo" para corrigir.');
     } else {
       document.getElementById('assuntoTopicoTexto').textContent = bloco.topico
         ? bloco.topico
@@ -1861,7 +1895,9 @@ const UI = (() => {
 
     // estimativa até a prova
     const estBox = document.getElementById('vmEstimativaBox');
-    if (prog.restantes <= 0){
+    if (prog.temBlocosCorrompidos){
+      estBox.innerHTML = '<div class="alert warn">⚠ Este ciclo tem blocos de Vade Mecum de uma versão antiga, sem faixa de página definida. Vá em "Ciclo de Estudos" e clique em "🔄 Regerar ciclo" para corrigir.</div>';
+    } else if (prog.restantes <= 0){
       estBox.innerHTML = '<div class="alert good">✓ Vade Mecum concluído! Use os blocos restantes para revisão dos pontos com nota baixa.</div>';
     } else {
       estBox.innerHTML =
@@ -1872,7 +1908,7 @@ const UI = (() => {
     // próxima faixa a ler
     const proxBox = document.getElementById('vmProximaFaixaBox');
     if (!prog.proxima){
-      proxBox.innerHTML = '<p style="color:var(--text-faint);font-size:13px;">Nenhum bloco de Vade Mecum pendente — todas as faixas já foram lidas.</p>';
+      proxBox.innerHTML = '<p style="color:var(--text-faint);font-size:13px;">Nenhum bloco de Vade Mecum pendente com faixa válida — todas as faixas já foram lidas ou o ciclo precisa ser regerado.</p>';
     } else {
       const b = prog.proxima.bloco;
       proxBox.innerHTML =
@@ -1896,7 +1932,8 @@ const UI = (() => {
     } else {
       prog.blocos.forEach(x => {
         const b = x.bloco;
-        const faixa = b.vmRevisao ? 'Revisão geral' : ('Páginas ' + b.paginaInicio + '–' + b.paginaFim);
+        const faixaValida = b.vmRevisao || (Number.isFinite(b.paginaInicio) && Number.isFinite(b.paginaFim));
+        const faixa = b.vmRevisao ? 'Revisão geral' : (faixaValida ? ('Páginas ' + b.paginaInicio + '–' + b.paginaFim) : '⚠ faixa a recalcular');
         const statusBadge = b.concluido ? '<span class="badge ok">Lida</span>' : '<span class="badge comum">Pendente</span>';
         const tr = document.createElement('tr');
         tr.innerHTML = '<td>'+Utils.fmtDateShort(Utils.parseISO(x.dia.data))+'</td><td>'+faixa+'</td><td>'+statusBadge+'</td>';
@@ -1908,6 +1945,7 @@ const UI = (() => {
   /* ---------------- Configurações ---------------- */
   function preencherConfigForm(){
     document.getElementById('cfgHoras').value = AppState.config.HORAS_LIQUIDAS_DIA;
+    document.getElementById('cfgHoraInicio').value = AppState.config.HORA_INICIO_ESTUDO || '08:00';
     document.getElementById('cfgBloco').value = AppState.config.BLOCO_MINUTOS;
     document.getElementById('cfgDescansoCurto').value = AppState.config.DESCANSO_CURTO_MINUTOS;
     document.getElementById('cfgBlocosPausa').value = AppState.config.BLOCOS_ATE_PAUSA_LONGA;
@@ -1983,6 +2021,7 @@ const UI = (() => {
     // configurações — salvar
     document.getElementById('btnSalvarConfig').addEventListener('click', () => {
       AppState.config.HORAS_LIQUIDAS_DIA = parseFloat(document.getElementById('cfgHoras').value) || 6;
+      AppState.config.HORA_INICIO_ESTUDO = document.getElementById('cfgHoraInicio').value || '08:00';
       AppState.config.BLOCO_MINUTOS = parseInt(document.getElementById('cfgBloco').value,10) || 50;
       AppState.config.DESCANSO_CURTO_MINUTOS = parseInt(document.getElementById('cfgDescansoCurto').value,10) || 10;
       AppState.config.BLOCOS_ATE_PAUSA_LONGA = parseInt(document.getElementById('cfgBlocosPausa').value,10) || 3;
@@ -2013,7 +2052,7 @@ const UI = (() => {
     document.getElementById('btnPuxarSheets').addEventListener('click', async () => {
       const dados = await SheetsSync.pull();
       if (dados && dados.config && dados.ciclo){
-        AppState.config = dados.config; AppState.ciclo = dados.ciclo;
+        AppState.config = mesclarConfig(dados.config); AppState.ciclo = dados.ciclo;
         if (dados.vadeMecum) AppState.vadeMecum = dados.vadeMecum;
         preencherConfigForm(); renderDashboard(); renderCiclo();
         alert('Dados carregados da planilha.');
@@ -2142,7 +2181,7 @@ const UI = (() => {
     reader.onload = (ev) => {
       try{
         const data = JSON.parse(ev.target.result);
-        if (data.config) AppState.config = data.config;
+        if (data.config) AppState.config = mesclarConfig(data.config);
         if (data.disciplinas) AppState.disciplinas = data.disciplinas;
         if (data.ciclo) AppState.ciclo = data.ciclo;
         if (data.vadeMecum) AppState.vadeMecum = data.vadeMecum;
@@ -2183,7 +2222,7 @@ async function iniciarApp(){
   if (SheetsSync.estaConfigurado()){
     const dados = await SheetsSync.pull();
     if (dados && dados.config && dados.ciclo){
-      AppState.config = dados.config; AppState.ciclo = dados.ciclo;
+      AppState.config = mesclarConfig(dados.config); AppState.ciclo = dados.ciclo;
       if (dados.vadeMecum) AppState.vadeMecum = dados.vadeMecum;
       UI.preencherConfigForm(); UI.renderDashboard();
     }
