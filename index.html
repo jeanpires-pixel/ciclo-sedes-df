@@ -769,6 +769,43 @@ const CycleEngine = (() => {
     return escolhido.id;
   }
 
+  // ------------------------------------------------------------------
+  // TRILHAS: o ciclo é dividido em 3 trilhas fixas (Comum, TDAS, EDAS).
+  // Um "padrão macro" define em que ordem as trilhas se alternam a cada
+  // bloco normal (ex.: Comum, Comunicação, Comum, Técnico...). Dentro de
+  // cada trilha, a escolha da disciplina específica continua usando o
+  // rodízio ponderado (smooth weighted round-robin) já existente.
+  // ------------------------------------------------------------------
+  const PADRAO_MACRO_TRILHAS = ['Comum', 'EDAS', 'Comum', 'TDAS'];
+
+  function criarMotorDeTrilhas(disciplinasAtivas){
+    const porCargo = { Comum: [], TDAS: [], EDAS: [] };
+    disciplinasAtivas.forEach(d => { if (porCargo[d.cargo]) porCargo[d.cargo].push(d); });
+    return {
+      indiceMacro: 0,
+      rotores: {
+        Comum: criarRotor(porCargo.Comum),
+        TDAS:  criarRotor(porCargo.TDAS),
+        EDAS:  criarRotor(porCargo.EDAS)
+      }
+    };
+  }
+
+  // Avança o padrão macro (Comum/EDAS/Comum/TDAS...) e devolve a disciplina
+  // escolhida dentro da trilha da vez, usando o rodízio ponderado interno.
+  function proximoBlocoPorTrilha(motor){
+    let trilha = PADRAO_MACRO_TRILHAS[motor.indiceMacro % PADRAO_MACRO_TRILHAS.length];
+    motor.indiceMacro++;
+    let rotor = motor.rotores[trilha];
+    // segurança: se a trilha da vez não tiver disciplinas ativas, cai para a próxima que tiver
+    if (!rotor || !rotor.length){
+      const alternativa = ['Comum','EDAS','TDAS'].find(t => motor.rotores[t] && motor.rotores[t].length);
+      trilha = alternativa || 'Comum';
+      rotor = motor.rotores[trilha];
+    }
+    return { trilha, discId: proximaDisciplina(rotor) };
+  }
+
   // Calcula quantos blocos de estudo cabem no total de horas líquidas do dia
   function calcularBlocosPorDia(horasLiquidas, blocoMin){
     const minutosLiquidos = horasLiquidas * 60;
@@ -806,7 +843,7 @@ const CycleEngine = (() => {
     const blocosPorDia = calcularBlocosPorDia(cfg.HORAS_LIQUIDAS_DIA, cfg.BLOCO_MINUTOS);
     const horarios = gerarHorariosDoDia(blocosPorDia, cfg.BLOCO_MINUTOS, cfg.DESCANSO_CURTO_MINUTOS, cfg.BLOCOS_ATE_PAUSA_LONGA, cfg.PAUSA_LONGA_MINUTOS);
 
-    const rotor = criarRotor(disciplinasAtivas);
+    const motorTrilhas = criarMotorDeTrilhas(disciplinasAtivas);
     const dias = [];
 
     for (let i=0;i<totalDias;i++){
@@ -842,8 +879,8 @@ const CycleEngine = (() => {
         }
       } else {
         for (let b=0;b<blocosPorDia;b++){
-          const discId = proximaDisciplina(rotor);
-          blocos.push({ id: Utils.uid(), disciplinaId: discId, horario: horarios[b] || '--:--', concluido:false, avaliacao:0 });
+          const escolha = proximoBlocoPorTrilha(motorTrilhas);
+          blocos.push({ id: Utils.uid(), disciplinaId: escolha.discId, trilha: escolha.trilha, horario: horarios[b] || '--:--', concluido:false, avaliacao:0 });
         }
       }
 
